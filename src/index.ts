@@ -7,3 +7,4 @@ import './my-lifecycle-demo.js';
 import './my-theme-demo.js';
 import './my-directive-demo.js';
 import './my-accordion.js';
+import './my-controller-demo.js';

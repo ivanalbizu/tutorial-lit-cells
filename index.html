@@ -17,32 +17,16 @@
     </style>
   </head>
   <body>
-    <h1>09 — Slots y composición</h1>
+    <h1>10 — Reactive Controllers</h1>
 
     <section>
-      <h2>Acordeón + slot demo</h2>
+      <h2>Tres controllers en un componente</h2>
       <p style="color: #888; font-size: 0.9rem;">
-        Demuestra: <code>&lt;slot&gt;</code>, <code>&lt;slot name="..."&gt;</code>,
-        fallback content, <code>::slotted()</code> y <code>slotchange</code>.
+        Lógica reutilizable que participa en el ciclo de vida:
+        <code>ClockController</code>, <code>MouseController</code>,
+        <code>FetchController</code>.
       </p>
-      <my-slot-demo>
-        <!-- Este contenido se proyecta en el slot default de my-slot-demo -->
-        <p class="highlight">Contenido proyectado desde fuera (light DOM)</p>
-      </my-slot-demo>
-    </section>
-
-    <section>
-      <h2>Acordeón standalone</h2>
-      <p style="color: #888; font-size: 0.9rem;">
-        my-accordion-item usado directamente, con y sin named slots.
-      </p>
-      <my-accordion-item header="Con icono via named slot">
-        <span slot="icon">🚀</span>
-        <p>El icono del cohete se proyecta en el named slot "icon".</p>
-      </my-accordion-item>
-      <my-accordion-item header="Sin named slot">
-        <p>Todo el contenido va al slot default.</p>
-      </my-accordion-item>
+      <my-controller-demo></my-controller-demo>
     </section>
 
     <script type="module" src="/src/index.ts"></script>
