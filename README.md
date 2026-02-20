@@ -1,80 +1,111 @@
-# 03 — Propiedades y estado
+# 04 — Templates y binding
 
-> Rama: `03-propiedades-estado` | Anterior: `02-primer-componente` | [Índice](../../tree/main)
+> Rama: `04-templates-binding` | Anterior: `03-propiedades-estado` | [Índice](../../tree/main)
 
 ## Qué hemos hecho
 
-Dos componentes nuevos que demuestran `@property()` y `@state()`.
+Un componente `<my-task-list>` que demuestra **todos los tipos de binding** de Lit.
 
-## Conceptos clave
+## Los 7 tipos de binding en Lit
 
-### @property() → Equivalente a @Prop() en Stencil
-
-Es una propiedad **pública** que puede establecerse desde fuera del componente.
-
-```ts
-// Stencil
-@Prop() label: string = 'Hola';
-@Prop({ mutable: true }) count: number = 0;
-
-// Lit
-@property({ type: String }) label = 'Hola';
-@property({ type: Number }) count = 0;
-```
-
-**Diferencias importantes:**
-- En Stencil necesitas `mutable: true` para poder cambiarla internamente. En Lit **todas las properties son mutables** por defecto.
-- En Stencil, `@Prop()` infiere el tipo del TypeScript. En Lit, **debes indicar `type`** explícitamente para que la conversión atributo → propiedad funcione.
-
-### @state() → Equivalente a @State() en Stencil
-
-Es una propiedad **privada** que solo se usa internamente.
-
-```ts
-// Stencil
-@State() count: number = 0;
-
-// Lit
-@state()
-private _count = 0;
-```
-
-**Comportamiento idéntico**: un cambio en `@state()` dispara un re-render, igual que en Stencil.
-
-### Tipos de propiedades
-
-| Tipo | Atributo HTML | Conversión Lit |
-|------|--------------|----------------|
-| `String` | `name="Ana"` | Directo |
-| `Number` | `age="28"` | `Number("28")` → `28` |
-| `Boolean` | `active` (presente/ausente) | Presente → `true`, ausente → `false` |
-| `Object` | No se usa por atributo | Solo via JS: `el.data = {...}` |
-| `Array` | No se usa por atributo | Solo via JS: `el.items = [...]` |
-
-### Eventos en templates: @click
+### 1. Interpolación de texto: `${expresion}`
 
 ```ts
 // Stencil (JSX)
-<button onClick={() => this.increment()}>+</button>
+<p>{this.count} tareas</p>
 
-// Lit (tagged template)
-<button @click=${this._increment}>+</button>
+// Lit
+html`<p>${this.count} tareas</p>`
 ```
 
-Nota: en Lit usas `@evento` (prefijo `@`) y pasas la referencia a la función directamente, sin arrow function wrapper (Lit hace el bind automáticamente al componente).
+### 2. Binding de atributo: `attr=${valor}`
 
-## Componentes de esta rama
+```ts
+// Stencil (JSX)
+<img src={this.url} />
 
-### `<my-counter>`
-- `label` (@property) — Texto del título
-- `step` (@property) — Incremento/decremento
-- `_count` (@state) — Valor actual (interno)
+// Lit
+html`<img src=${this.url} />`
+```
 
-### `<my-user-card>`
-- `name` (@property String)
-- `age` (@property Number)
-- `active` (@property Boolean, reflect)
-- `_showDetails` (@state) — Toggle interno
+### 3. Binding de propiedad: `.prop=${valor}`
+
+Establece la **propiedad JS** del elemento, no el atributo HTML. Útil para objetos/arrays.
+
+```ts
+// Stencil (JSX) — JSX siempre usa propiedades
+<input value={this.text} />
+
+// Lit — prefijo . para forzar propiedad
+html`<input .value=${this.text} />`
+```
+
+### 4. Binding de evento: `@event=${handler}`
+
+```ts
+// Stencil (JSX)
+<button onClick={() => this.handleClick()}>Click</button>
+
+// Lit — prefijo @
+html`<button @click=${this.handleClick}>Click</button>`
+```
+
+### 5. Binding booleano: `?attr=${bool}`
+
+Añade o quita un atributo booleano del DOM.
+
+```ts
+// Stencil (JSX)
+<button disabled={this.isDisabled}>Click</button>
+
+// Lit — prefijo ?
+html`<button ?disabled=${this.isDisabled}>Click</button>`
+```
+
+### 6. Condicionales
+
+```ts
+// Stencil (JSX) — ternario
+{this.show ? <p>Visible</p> : null}
+
+// Lit — ternario con nothing (import { nothing } from 'lit')
+${this.show ? html`<p>Visible</p>` : nothing}
+```
+
+`nothing` es más limpio que `''` o `null` — Lit no renderiza nada en absoluto.
+
+### 7. Listas: `.map()`
+
+```ts
+// Stencil (JSX)
+{this.items.map(item => <li key={item.id}>{item.text}</li>)}
+
+// Lit
+${this.items.map(item => html`<li>${item.text}</li>`)}
+```
+
+> Nota: Lit no necesita `key`. Para optimizar listas grandes existe la directiva `repeat()` (lo veremos en la rama 08).
+
+## Resumen de prefijos de binding
+
+| Prefijo | Tipo | Ejemplo | Equivalente Stencil |
+|---------|------|---------|---------------------|
+| (ninguno) | Atributo | `src=${url}` | `src={url}` |
+| `.` | Propiedad | `.value=${text}` | `value={text}` |
+| `@` | Evento | `@click=${fn}` | `onClick={fn}` |
+| `?` | Booleano | `?disabled=${bool}` | `disabled={bool}` |
+
+## Reactividad con arrays
+
+Igual que en Stencil con `@State`, Lit necesita una **nueva referencia** para detectar cambios en arrays/objetos:
+
+```ts
+// ❌ Esto NO dispara re-render
+this._tasks.push(newTask);
+
+// ✅ Esto SÍ dispara re-render
+this._tasks = [...this._tasks, newTask];
+```
 
 ## Cómo ejecutar
 
@@ -85,5 +116,5 @@ npm run dev
 ## Siguiente paso
 
 ```bash
-git checkout 04-templates-binding
+git checkout 05-eventos
 ```

@@ -18,32 +18,18 @@
     </style>
   </head>
   <body>
-    <h1>03 — Propiedades y estado</h1>
+    <h1>04 — Templates y binding</h1>
 
     <section>
-      <h2>my-greeting (repaso)</h2>
-      <my-greeting name="Lit"></my-greeting>
+      <h2>Lista de tareas — Todos los tipos de binding</h2>
+      <my-task-list title="Tutorial Lit"></my-task-list>
     </section>
 
     <section>
-      <h2>my-counter — @property vs @state</h2>
+      <h2>Componentes anteriores (repaso)</h2>
       <div class="row">
-        <!-- Sin atributos: usa valores por defecto -->
-        <my-counter></my-counter>
-
-        <!-- Con atributos: Lit convierte "5" (string) a 5 (number) -->
-        <my-counter label="De 5 en 5" step="5"></my-counter>
-      </div>
-    </section>
-
-    <section>
-      <h2>my-user-card — Tipos de propiedades</h2>
-      <div class="row">
-        <!-- Boolean: el atributo "active" sin valor = true -->
-        <my-user-card name="Ana" age="28" active></my-user-card>
-
-        <!-- Sin "active" = false -->
-        <my-user-card name="Carlos" age="35"></my-user-card>
+        <my-greeting name="Lit"></my-greeting>
+        <my-counter label="Clicks" step="1"></my-counter>
       </div>
     </section>
 
