@@ -182,21 +182,30 @@ export class MySlotDemo extends LitElement {
     }
   `;
 
+  // slotchange se dispara cuando cambia el LIGHT DOM asignado al slot.
+  // Los items renderizados dentro de render() son Shadow DOM, no Light DOM,
+  // por eso hay que manipular el Light DOM directamente con appendChild/removeChild.
   private _addItem() {
-    this._dynamicItems = [...this._dynamicItems, `Item dinámico #${this._dynamicItems.length + 1}`];
+    const p = document.createElement('p');
+    p.textContent = `Item dinámico #${this.children.length + 1}`;
+    p.style.color = '#4caf50';
+    this.appendChild(p); // Añadir al Light DOM → dispara slotchange
   }
 
   private _removeItem() {
-    this._dynamicItems = this._dynamicItems.slice(0, -1);
+    const last = this.querySelector('p:last-child');
+    if (last) {
+      this.removeChild(last); // Quitar del Light DOM → dispara slotchange
+    }
   }
 
-  // slotchange — se dispara cuando cambia el contenido de un slot
+  // slotchange — se dispara cuando cambia el contenido LIGHT DOM de un slot
   // Es un evento nativo del Shadow DOM, funciona igual en Stencil
   private _onSlotChange(e: Event) {
     const slot = e.target as HTMLSlotElement;
     const assigned = slot.assignedNodes({ flatten: true });
     const elements = assigned.filter(n => n.nodeType === Node.ELEMENT_NODE);
-    this._slotInfo = `Slot "${slot.name || 'default'}": ${elements.length} elementos asignados`;
+    this._slotInfo = `Slot "${slot.name || 'default'}": ${elements.length} elemento(s) asignado(s)`;
   }
 
   render() {
@@ -211,7 +220,6 @@ export class MySlotDemo extends LitElement {
       </my-accordion-item>
 
       <my-accordion-item header="Named slot (icon)" open>
-        <!-- Named slot: el contenido se proyecta en <slot name="icon"> -->
         <span slot="icon">📦</span>
         <p>El icono 📦 se proyecta en el <code>slot name="icon"</code> del header.</p>
         <p>El resto va al slot default del contenido.</p>
@@ -227,23 +235,23 @@ export class MySlotDemo extends LitElement {
       <h4>Fallback content</h4>
       <div class="fallback-demo">
         <slot name="extra">
-          <!-- Este texto se muestra si nadie pasa contenido con slot="extra" -->
           <p style="color: #666; font-style: italic;">
             Fallback: no se ha proporcionado contenido para slot="extra".
-            Este texto desaparece cuando se proyecta contenido real.
           </p>
         </slot>
       </div>
 
       <!-- slotchange: monitorear cambios en el slot -->
       <h4>slotchange event</h4>
+      <p style="font-size: 0.8rem; color: #888;">
+        Los botones añaden/quitan hijos al Light DOM (this.appendChild),
+        lo que dispara el evento slotchange en el slot default.
+      </p>
       <div class="controls">
         <button @click=${this._addItem}>+ Añadir item</button>
         <button @click=${this._removeItem}>- Quitar item</button>
       </div>
-      <slot @slotchange=${this._onSlotChange}>
-        ${this._dynamicItems.map(item => html`<p>${item}</p>`)}
-      </slot>
+      <slot @slotchange=${this._onSlotChange}></slot>
       <div class="slot-monitor">${this._slotInfo || 'Esperando slotchange...'}</div>
     `;
   }
