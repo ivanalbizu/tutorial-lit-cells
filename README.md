@@ -1,106 +1,82 @@
-# 05 — Eventos y comunicación
+# 06 — Ciclo de vida
 
-> Rama: `05-eventos` | Anterior: `04-templates-binding` | [Índice](../../tree/main)
+> Rama: `06-ciclo-de-vida` | Anterior: `05-eventos` | [Índice](../../tree/main)
 
 ## Qué hemos hecho
 
-Comunicación padre-hijo mediante `CustomEvent`, con dos componentes:
-- `<my-rating>` (hijo) — emite `rating-changed`
-- `<my-review>` (padre) — escucha el evento y gestiona las reviews
+Un reloj en tiempo real (`<my-clock>`) que demuestra todos los métodos del ciclo de vida, con un wrapper (`<my-lifecycle-demo>`) que permite montarlo y desmontarlo.
 
-## Emitir eventos: Stencil vs Lit
+## Ciclo de vida: Stencil vs Lit
 
-### Stencil
+### Tabla completa
 
+| Orden | Stencil | Lit | Cuándo |
+|-------|---------|-----|--------|
+| 1 | `constructor()` | `constructor()` | Al crear la instancia |
+| 2 | `connectedCallback()` | `connectedCallback()` | Al añadir al DOM |
+| 3 | `componentWillLoad()` | _(no existe)_ | Antes del primer render (solo Stencil) |
+| 4 | — | `willUpdate(changedProps)` | Antes de cada render |
+| 5 | `render()` | `render()` | Genera el template |
+| 6 | `componentDidLoad()` | `firstUpdated()` | Después del primer render |
+| 7 | `componentDidRender()` | `updated(changedProps)` | Después de cada render |
+| 8 | `disconnectedCallback()` | `disconnectedCallback()` | Al quitar del DOM |
+
+### Reemplazar @Watch()
+
+En Stencil:
 ```tsx
-import { Event, EventEmitter } from '@stencil/core';
-
-@Event() ratingChanged: EventEmitter<number>;
-
-// Emitir
-this.ratingChanged.emit(3);
+@Watch('name')
+nameChanged(newVal: string, oldVal: string) {
+  console.log(`name cambió de ${oldVal} a ${newVal}`);
+}
 ```
 
-Stencil crea el `CustomEvent` por ti, con `bubbles` y `composed` automáticos.
-
-### Lit
-
+En Lit, usas `willUpdate` o `updated`:
 ```ts
-// No hay decorador — usas la API nativa del navegador
-this.dispatchEvent(new CustomEvent('rating-changed', {
-  detail: { value: 3 },
-  bubbles: true,
-  composed: true,
-}));
-```
-
-Más explícito, pero es **API estándar** — no necesitas importar nada de Lit.
-
-## Escuchar eventos: Stencil vs Lit
-
-### En el template (padre escucha al hijo)
-
-```tsx
-// Stencil (JSX)
-<my-rating onRatingChanged={(e) => this.handleRating(e)} />
-
-// Lit
-html`<my-rating @rating-changed=${this._onRatingChanged}></my-rating>`
-```
-
-### Con decorador (Stencil only)
-
-```tsx
-// Stencil — escucha en el propio componente o en window/document
-@Listen('ratingChanged')
-handleRating(e: CustomEvent<number>) { ... }
-
-// Lit — no tiene @Listen, se hace manualmente:
-connectedCallback() {
-  super.connectedCallback();
-  this.addEventListener('rating-changed', this._handler);
-}
-disconnectedCallback() {
-  super.disconnectedCallback();
-  this.removeEventListener('rating-changed', this._handler);
+willUpdate(changedProps: Map<string, unknown>) {
+  if (changedProps.has('name')) {
+    const oldVal = changedProps.get('name') as string;
+    console.log(`name cambió de ${oldVal} a ${this.name}`);
+  }
 }
 ```
 
-### Desde JavaScript vanilla
+**Diferencia clave:** `changedProps.get('prop')` retorna el valor **anterior**, y `this.prop` ya tiene el valor **nuevo**.
 
-```js
-// Funciona igual en ambos — son CustomEvents estándar
-document.addEventListener('rating-changed', (e) => {
-  console.log(e.detail.value);
-});
-```
+## Detalle de cada método
 
-## Opciones de CustomEvent
+### `constructor()`
+- **Siempre** llama a `super()` primero
+- No accedas al DOM (Shadow DOM aún no existe)
+- Inicializa estado por defecto
 
-| Opción | Default | Para qué sirve |
-|--------|---------|----------------|
-| `bubbles` | `false` | El evento sube por el árbol DOM (como `click`) |
-| `composed` | `false` | El evento cruza los límites del Shadow DOM |
-| `detail` | `undefined` | Datos que acompañan al evento |
+### `connectedCallback()`
+- **Siempre** llama a `super.connectedCallback()`
+- Ideal para: timers, suscripciones, event listeners globales
+- Puede ejecutarse múltiples veces si el elemento se mueve en el DOM
 
-**Regla práctica:** Si quieres que el padre pueda escuchar el evento, usa siempre `bubbles: true, composed: true`.
+### `willUpdate(changedProps)`
+- Se ejecuta **antes** del render
+- Puedes modificar estado aquí **sin causar render extra**
+- `changedProps` es un `Map<string, unknown>` con los valores anteriores
 
-## Nombres de eventos
+### `render()`
+- Debe ser **puro**: solo retorna template
+- No hagas side effects aquí
 
-| Stencil | Lit / Nativo |
-|---------|--------------|
-| `@Event() ratingChanged` (camelCase) | `'rating-changed'` (kebab-case) |
-| Se auto-convierte a kebab en el DOM | Tú controlas el nombre directamente |
+### `firstUpdated()`
+- Se ejecuta **una sola vez** después del primer render
+- El Shadow DOM ya existe — puedes hacer `this.shadowRoot.querySelector(...)`
+- Ideal para: focus, mediciones, inicializaciones que necesitan el DOM
 
-## Flujo de comunicación
+### `updated(changedProps)`
+- Se ejecuta **después** de cada render
+- El DOM ya está actualizado
+- Cuidado: modificar estado aquí **causa otro render**
 
-```
-[my-rating]  →  dispatchEvent('rating-changed')
-                        ↓ bubbles + composed
-[my-review]  →  @rating-changed=${this._handler}
-                        ↓ bubbles + composed
-[document]   →  addEventListener('rating-changed', ...)
-```
+### `disconnectedCallback()`
+- **Siempre** llama a `super.disconnectedCallback()`
+- Limpia todo: timers, listeners, suscripciones
 
 ## Cómo ejecutar
 
@@ -108,12 +84,12 @@ document.addEventListener('rating-changed', (e) => {
 npm run dev
 ```
 
-Haz click en las estrellas y observa:
-1. El padre `<my-review>` actualiza su estado
-2. El log de eventos en la parte inferior captura todo
+Prueba a montar/desmontar el reloj y observa:
+- El log dentro del componente muestra los hooks
+- La consola del navegador muestra constructor y disconnectedCallback
 
 ## Siguiente paso
 
 ```bash
-git checkout 06-ciclo-de-vida
+git checkout 07-estilos
 ```
