@@ -1,157 +1,143 @@
-# 08 — Directivas
+# 09 — Slots y composición
 
-> Rama: `08-directivas` | Anterior: `07-estilos` | [Índice](../../tree/main)
+> Rama: `09-slots` | Anterior: `08-directivas` | [Índice](../../tree/main)
 
 ## Qué hemos hecho
 
-Un componente `<my-directive-demo>` que demuestra las directivas más usadas de Lit en un solo ejemplo: una lista de personas editable.
+Un acordeón (`<my-accordion-item>`) y un demo (`<my-slot-demo>`) que demuestran slots, named slots, fallback content y slotchange.
 
-## ¿Qué son las directivas?
+## Slots: Stencil vs Lit
 
-Stencil no tiene directivas porque usa **JSX**, donde todo es JavaScript nativo. En Lit, las directivas son **funciones especiales** que se usan dentro de `html`...`` para controlar cómo se renderizan las expresiones.
+**Los slots son idénticos** — es API estándar de Shadow DOM. La única diferencia es la sintaxis del template.
 
-Son el equivalente Lit a los patrones comunes de JSX.
+### Default slot
 
-## Directivas principales
-
-### repeat(items, keyFn, templateFn)
-
-Renderiza listas con **keys** para reordenamiento eficiente.
-
-```ts
-import { repeat } from 'lit/directives/repeat.js';
-
-// Stencil (JSX) — key es nativo
-{this.items.map(item => <li key={item.id}>{item.name}</li>)}
-
-// Lit — sin repeat (reutiliza por posición)
-${this.items.map(item => html`<li>${item.name}</li>`)}
-
-// Lit — con repeat (reutiliza por key, como React/Stencil)
-${repeat(this.items, (item) => item.id, (item) => html`<li>${item.name}</li>`)}
-```
-
-**Cuándo usar `repeat`:**
-- La lista cambia de **orden** (sort, shuffle)
-- Los items tienen **estado interno** (inputs, animaciones)
-- Se hacen **inserciones/eliminaciones** frecuentes en medio de la lista
-
-**Cuándo `.map()` es suficiente:**
-- Lista estática o que solo crece al final
-- No hay estado interno en los items
-
-### classMap({ clase: condición })
-
-Aplica clases condicionalmente con un objeto.
-
-```ts
-import { classMap } from 'lit/directives/class-map.js';
-
+```tsx
 // Stencil (JSX)
-<span class={{ active: this.isActive, disabled: this.isDisabled }}>
+render() {
+  return <div><slot /></div>;
+}
 
 // Lit
-html`<span class=${classMap({
-  active: this.isActive,
-  disabled: this.isDisabled,
-})}>`
+render() {
+  return html`<div><slot></slot></div>`;
+}
+
+// Uso (idéntico en ambos)
+<my-comp>
+  <p>Este contenido va al slot default</p>
+</my-comp>
 ```
 
-### styleMap({ propiedad: valor })
+### Named slots
 
-Aplica estilos inline con un objeto.
-
-```ts
-import { styleMap } from 'lit/directives/style-map.js';
-
+```tsx
 // Stencil (JSX)
-<div style={{ backgroundColor: this.color, fontSize: '16px' }}>
+render() {
+  return (
+    <div>
+      <slot name="header" />
+      <slot />
+      <slot name="footer" />
+    </div>
+  );
+}
 
 // Lit
-html`<div style=${styleMap({
-  backgroundColor: this.color,
-  fontSize: '16px',
-})}>`
+render() {
+  return html`
+    <div>
+      <slot name="header"></slot>
+      <slot></slot>
+      <slot name="footer"></slot>
+    </div>
+  `;
+}
+
+// Uso (idéntico en ambos)
+<my-comp>
+  <h2 slot="header">Título</h2>
+  <p>Contenido default</p>
+  <span slot="footer">Pie</span>
+</my-comp>
 ```
 
-Nota: usa camelCase (`backgroundColor`) no kebab-case.
+### Fallback content
 
-### when(condición, trueCase, falseCase)
+Contenido dentro de `<slot>` que se muestra solo si no se proyecta nada:
 
-Alternativa más legible al ternario.
+```html
+<slot name="extra">
+  <p>Este texto se ve solo si nadie pasa contenido</p>
+</slot>
+```
+
+Funciona igual en Stencil y Lit.
+
+## Estilizar contenido proyectado: ::slotted()
+
+```css
+/* Solo hijos directos del slot */
+::slotted(p) {
+  margin: 0.5rem 0;
+}
+
+::slotted([slot="icon"]) {
+  margin-right: 0.5rem;
+}
+
+::slotted(.highlight) {
+  background: rgba(100, 108, 255, 0.2);
+}
+```
+
+**Limitación importante:** `::slotted()` solo puede estilizar **hijos directos** del slot, no nietos. Esto es una limitación del Shadow DOM, no de Lit ni de Stencil.
+
+## Evento slotchange
+
+Se dispara cuando el contenido asignado a un slot cambia (elementos añadidos/quitados).
 
 ```ts
-import { when } from 'lit/directives/when.js';
+// En el template
+html`<slot @slotchange=${this._onSlotChange}></slot>`
 
-// Ternario clásico
-${this.show ? html`<p>Visible</p>` : html`<p>Oculto</p>`}
-
-// when() — las funciones son lazy (no se evalúan si no se necesitan)
-${when(this.show,
-  () => html`<p>Visible</p>`,
-  () => html`<p>Oculto</p>`
-)}
+// Handler
+private _onSlotChange(e: Event) {
+  const slot = e.target as HTMLSlotElement;
+  const nodes = slot.assignedNodes({ flatten: true });
+  const elements = nodes.filter(n => n.nodeType === Node.ELEMENT_NODE);
+  console.log(`${elements.length} elementos asignados`);
+}
 ```
 
-### guard([deps], () => template)
+En Stencil se haría igual con `onSlotchange` en JSX o con `@Listen('slotchange')`.
 
-Memoización: solo re-evalúa si las dependencias cambian.
+### Métodos útiles de HTMLSlotElement
 
-```ts
-import { guard } from 'lit/directives/guard.js';
+| Método | Qué devuelve |
+|--------|-------------|
+| `slot.assignedNodes()` | Nodos asignados (texto + elementos) |
+| `slot.assignedNodes({ flatten: true })` | Incluye fallback si no hay nada asignado |
+| `slot.assignedElements()` | Solo elementos (sin nodos de texto) |
 
-// Se recalcula en CADA render
-${this.computeExpensiveHTML()}
+## Light DOM vs Shadow DOM
 
-// Solo se recalcula si this.items cambia
-${guard([this.items], () => this.computeExpensiveHTML())}
+```
+<my-comp>                    ← Light DOM (del padre)
+  <p slot="header">Hola</p> ← Light DOM (proyectado)
+  <p>Contenido</p>          ← Light DOM (proyectado)
+</my-comp>
+
+#shadow-root                 ← Shadow DOM (del componente)
+  <slot name="header">      ← Punto de inserción
+    → <p>Hola</p>           ← Contenido proyectado
+  </slot>
+  <slot>
+    → <p>Contenido</p>
+  </slot>
 ```
 
-No tiene equivalente en Stencil — lo más cercano sería memoización manual o `@Watch`.
-
-### ifDefined(valor)
-
-Si el valor es `undefined`, el atributo NO se añade al DOM.
-
-```ts
-import { ifDefined } from 'lit/directives/if-defined.js';
-
-// Stencil (JSX)
-<img src={this.url || undefined} />
-
-// Lit
-html`<img src=${ifDefined(this.url)} />`
-```
-
-Útil para atributos opcionales: `src`, `href`, `aria-*`, `title`.
-
-### live(valor)
-
-Compara contra el valor **real del DOM**, no contra el último valor renderizado por Lit.
-
-```ts
-import { live } from 'lit/directives/live.js';
-
-// Sin live: Lit compara con su cache interno
-html`<input .value=${this.text} />`
-
-// Con live: Lit compara con input.value del DOM real
-html`<input .value=${live(this.text)} />`
-```
-
-Útil cuando el usuario puede modificar un input y quieres forzar sincronización.
-
-## Resumen: Stencil (JSX) → Lit (directivas)
-
-| Patrón en Stencil/JSX | Directiva Lit | Import |
-|------------------------|---------------|--------|
-| `key={id}` en listas | `repeat(items, keyFn, tplFn)` | `lit/directives/repeat.js` |
-| `class={{ a: true }}` | `classMap({ a: true })` | `lit/directives/class-map.js` |
-| `style={{ color: 'red' }}` | `styleMap({ color: 'red' })` | `lit/directives/style-map.js` |
-| Ternario `{cond ? ... : ...}` | `when(cond, trueFn, falseFn)` | `lit/directives/when.js` |
-| Memoización manual | `guard([deps], fn)` | `lit/directives/guard.js` |
-| `attr={val \|\| undefined}` | `ifDefined(val)` | `lit/directives/if-defined.js` |
-| — | `live(val)` | `lit/directives/live.js` |
+El contenido sigue **perteneciendo al Light DOM** del padre — el slot solo es un punto de inserción. Por eso `::slotted()` tiene limitaciones.
 
 ## Cómo ejecutar
 
@@ -159,10 +145,8 @@ html`<input .value=${live(this.text)} />`
 npm run dev
 ```
 
-Prueba a reordenar, añadir y eliminar personas para ver `repeat` en acción. Haz click en una persona para ver `when` + `live`.
-
 ## Siguiente paso
 
 ```bash
-git checkout 09-slots
+git checkout 10-reactive-controllers
 ```

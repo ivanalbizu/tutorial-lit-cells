@@ -17,16 +17,32 @@
     </style>
   </head>
   <body>
-    <h1>08 — Directivas</h1>
+    <h1>09 — Slots y composición</h1>
 
     <section>
-      <h2>Todas las directivas en un componente</h2>
+      <h2>Acordeón + slot demo</h2>
       <p style="color: #888; font-size: 0.9rem;">
-        Lista de personas con: <code>repeat</code>, <code>classMap</code>,
-        <code>styleMap</code>, <code>when</code>, <code>guard</code>,
-        <code>ifDefined</code> y <code>live</code>.
+        Demuestra: <code>&lt;slot&gt;</code>, <code>&lt;slot name="..."&gt;</code>,
+        fallback content, <code>::slotted()</code> y <code>slotchange</code>.
       </p>
-      <my-directive-demo></my-directive-demo>
+      <my-slot-demo>
+        <!-- Este contenido se proyecta en el slot default de my-slot-demo -->
+        <p class="highlight">Contenido proyectado desde fuera (light DOM)</p>
+      </my-slot-demo>
+    </section>
+
+    <section>
+      <h2>Acordeón standalone</h2>
+      <p style="color: #888; font-size: 0.9rem;">
+        my-accordion-item usado directamente, con y sin named slots.
+      </p>
+      <my-accordion-item header="Con icono via named slot">
+        <span slot="icon">🚀</span>
+        <p>El icono del cohete se proyecta en el named slot "icon".</p>
+      </my-accordion-item>
+      <my-accordion-item header="Sin named slot">
+        <p>Todo el contenido va al slot default.</p>
+      </my-accordion-item>
     </section>
 
     <script type="module" src="/src/index.ts"></script>
