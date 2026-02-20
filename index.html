@@ -17,15 +17,15 @@
     </style>
   </head>
   <body>
-    <h1>06 — Ciclo de vida</h1>
+    <h1>07 — Estilos encapsulados</h1>
 
     <section>
-      <h2>Reloj con lifecycle hooks</h2>
+      <h2>my-card + my-theme-demo</h2>
       <p style="color: #888; font-size: 0.9rem;">
-        Monta/desmonta el reloj para ver connectedCallback y disconnectedCallback en acción.
-        <br>Cada 10 ticks se registra willUpdate. El primer render dispara firstUpdated.
+        Demuestra: <code>static styles</code>, <code>:host</code>, <code>::slotted()</code>,
+        CSS custom properties y <code>::part()</code>.
       </p>
-      <my-lifecycle-demo></my-lifecycle-demo>
+      <my-theme-demo></my-theme-demo>
     </section>
 
     <script type="module" src="/src/index.ts"></script>

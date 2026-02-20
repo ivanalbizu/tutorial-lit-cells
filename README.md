@@ -1,82 +1,125 @@
-# 06 — Ciclo de vida
+# 07 — Estilos encapsulados
 
-> Rama: `06-ciclo-de-vida` | Anterior: `05-eventos` | [Índice](../../tree/main)
+> Rama: `07-estilos` | Anterior: `06-ciclo-de-vida` | [Índice](../../tree/main)
 
 ## Qué hemos hecho
 
-Un reloj en tiempo real (`<my-clock>`) que demuestra todos los métodos del ciclo de vida, con un wrapper (`<my-lifecycle-demo>`) que permite montarlo y desmontarlo.
+Dos componentes que demuestran el sistema de estilos de Lit:
+- `<my-card>` — Componente estilizado con variantes, slots y `part`
+- `<my-theme-demo>` — Personaliza `my-card` desde fuera con CSS custom properties y `::part()`
 
-## Ciclo de vida: Stencil vs Lit
+## Estilos: Stencil vs Lit
 
-### Tabla completa
+### Definición de estilos
 
-| Orden | Stencil | Lit | Cuándo |
-|-------|---------|-----|--------|
-| 1 | `constructor()` | `constructor()` | Al crear la instancia |
-| 2 | `connectedCallback()` | `connectedCallback()` | Al añadir al DOM |
-| 3 | `componentWillLoad()` | _(no existe)_ | Antes del primer render (solo Stencil) |
-| 4 | — | `willUpdate(changedProps)` | Antes de cada render |
-| 5 | `render()` | `render()` | Genera el template |
-| 6 | `componentDidLoad()` | `firstUpdated()` | Después del primer render |
-| 7 | `componentDidRender()` | `updated(changedProps)` | Después de cada render |
-| 8 | `disconnectedCallback()` | `disconnectedCallback()` | Al quitar del DOM |
-
-### Reemplazar @Watch()
-
-En Stencil:
+**Stencil:**
 ```tsx
-@Watch('name')
-nameChanged(newVal: string, oldVal: string) {
-  console.log(`name cambió de ${oldVal} a ${newVal}`);
-}
+@Component({
+  tag: 'my-card',
+  styleUrl: 'my-card.css',   // archivo separado
+  shadow: true,
+})
 ```
 
-En Lit, usas `willUpdate` o `updated`:
+**Lit:**
 ```ts
-willUpdate(changedProps: Map<string, unknown>) {
-  if (changedProps.has('name')) {
-    const oldVal = changedProps.get('name') as string;
-    console.log(`name cambió de ${oldVal} a ${this.name}`);
-  }
+@customElement('my-card')
+export class MyCard extends LitElement {
+  static styles = css`
+    :host { display: block; }
+  `;
 }
 ```
 
-**Diferencia clave:** `changedProps.get('prop')` retorna el valor **anterior**, y `this.prop` ya tiene el valor **nuevo**.
+### Array de estilos (composición)
 
-## Detalle de cada método
+```ts
+// Estilos compartidos (en un archivo aparte)
+export const baseStyles = css`
+  :host { display: block; box-sizing: border-box; }
+`;
 
-### `constructor()`
-- **Siempre** llama a `super()` primero
-- No accedas al DOM (Shadow DOM aún no existe)
-- Inicializa estado por defecto
+// Componente que los usa
+static styles = [baseStyles, css`
+  .header { color: blue; }
+`];
+```
 
-### `connectedCallback()`
-- **Siempre** llama a `super.connectedCallback()`
-- Ideal para: timers, suscripciones, event listeners globales
-- Puede ejecutarse múltiples veces si el elemento se mueve en el DOM
+En Stencil no hay equivalente directo — usarías CSS imports o preprocesadores.
 
-### `willUpdate(changedProps)`
-- Se ejecuta **antes** del render
-- Puedes modificar estado aquí **sin causar render extra**
-- `changedProps` es un `Map<string, unknown>` con los valores anteriores
+## Selectores especiales del Shadow DOM
 
-### `render()`
-- Debe ser **puro**: solo retorna template
-- No hagas side effects aquí
+Todos funcionan igual en Stencil (con `shadow: true`):
 
-### `firstUpdated()`
-- Se ejecuta **una sola vez** después del primer render
-- El Shadow DOM ya existe — puedes hacer `this.shadowRoot.querySelector(...)`
-- Ideal para: focus, mediciones, inicializaciones que necesitan el DOM
+### `:host` — El propio elemento
 
-### `updated(changedProps)`
-- Se ejecuta **después** de cada render
-- El DOM ya está actualizado
-- Cuidado: modificar estado aquí **causa otro render**
+```css
+:host {
+  display: block;
+  padding: 1rem;
+}
 
-### `disconnectedCallback()`
-- **Siempre** llama a `super.disconnectedCallback()`
-- Limpia todo: timers, listeners, suscripciones
+:host([variant="primary"]) {
+  border-color: blue;
+}
+
+:host(:hover) {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+```
+
+### `::slotted()` — Contenido proyectado en slots
+
+```css
+::slotted(p) {
+  margin: 0.5rem 0;
+}
+
+::slotted([slot="footer"]) {
+  border-top: 1px solid #ccc;
+}
+```
+
+**Limitación:** `::slotted()` solo puede estilizar hijos directos, no nietos.
+
+### `::part()` — Partes expuestas desde dentro
+
+**Dentro del componente (exponer):**
+```html
+<div part="header">...</div>
+```
+
+**Desde fuera (estilizar):**
+```css
+my-card::part(header) {
+  font-style: italic;
+}
+```
+
+## Formas de personalizar estilos desde fuera
+
+| Método | Atraviesa Shadow DOM | Ejemplo |
+|--------|---------------------|---------|
+| CSS custom properties | Sí | `--card-bg: red` |
+| `::part()` | Sí (solo partes expuestas) | `my-card::part(header) { ... }` |
+| Atributos + `:host([attr])` | Sí (el componente debe soportarlo) | `variant="primary"` |
+| Clases CSS externas | No | No afectan al Shadow DOM |
+
+### CSS Custom Properties (la más potente)
+
+Las variables CSS son la **única forma** de pasar estilos arbitrarios a través del Shadow DOM. Funcionan igual en Stencil.
+
+```css
+/* Padre define */
+my-card { --card-bg: #1e1e3a; }
+
+/* Hijo consume con fallback */
+:host { background: var(--card-bg, #2a2a3e); }
+```
+
+## Rendimiento
+
+Lit usa **Constructable Stylesheets** (`adoptedStyleSheets`): si tienes 100 instancias de `<my-card>`, todas comparten la **misma hoja de estilos** en memoria.
 
 ## Cómo ejecutar
 
@@ -84,12 +127,8 @@ willUpdate(changedProps: Map<string, unknown>) {
 npm run dev
 ```
 
-Prueba a montar/desmontar el reloj y observa:
-- El log dentro del componente muestra los hooks
-- La consola del navegador muestra constructor y disconnectedCallback
-
 ## Siguiente paso
 
 ```bash
-git checkout 07-estilos
+git checkout 08-directivas
 ```
