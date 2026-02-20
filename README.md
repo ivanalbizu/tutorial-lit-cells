@@ -1,125 +1,157 @@
-# 07 — Estilos encapsulados
+# 08 — Directivas
 
-> Rama: `07-estilos` | Anterior: `06-ciclo-de-vida` | [Índice](../../tree/main)
+> Rama: `08-directivas` | Anterior: `07-estilos` | [Índice](../../tree/main)
 
 ## Qué hemos hecho
 
-Dos componentes que demuestran el sistema de estilos de Lit:
-- `<my-card>` — Componente estilizado con variantes, slots y `part`
-- `<my-theme-demo>` — Personaliza `my-card` desde fuera con CSS custom properties y `::part()`
+Un componente `<my-directive-demo>` que demuestra las directivas más usadas de Lit en un solo ejemplo: una lista de personas editable.
 
-## Estilos: Stencil vs Lit
+## ¿Qué son las directivas?
 
-### Definición de estilos
+Stencil no tiene directivas porque usa **JSX**, donde todo es JavaScript nativo. En Lit, las directivas son **funciones especiales** que se usan dentro de `html`...`` para controlar cómo se renderizan las expresiones.
 
-**Stencil:**
-```tsx
-@Component({
-  tag: 'my-card',
-  styleUrl: 'my-card.css',   // archivo separado
-  shadow: true,
-})
-```
+Son el equivalente Lit a los patrones comunes de JSX.
 
-**Lit:**
-```ts
-@customElement('my-card')
-export class MyCard extends LitElement {
-  static styles = css`
-    :host { display: block; }
-  `;
-}
-```
+## Directivas principales
 
-### Array de estilos (composición)
+### repeat(items, keyFn, templateFn)
+
+Renderiza listas con **keys** para reordenamiento eficiente.
 
 ```ts
-// Estilos compartidos (en un archivo aparte)
-export const baseStyles = css`
-  :host { display: block; box-sizing: border-box; }
-`;
+import { repeat } from 'lit/directives/repeat.js';
 
-// Componente que los usa
-static styles = [baseStyles, css`
-  .header { color: blue; }
-`];
+// Stencil (JSX) — key es nativo
+{this.items.map(item => <li key={item.id}>{item.name}</li>)}
+
+// Lit — sin repeat (reutiliza por posición)
+${this.items.map(item => html`<li>${item.name}</li>`)}
+
+// Lit — con repeat (reutiliza por key, como React/Stencil)
+${repeat(this.items, (item) => item.id, (item) => html`<li>${item.name}</li>`)}
 ```
 
-En Stencil no hay equivalente directo — usarías CSS imports o preprocesadores.
+**Cuándo usar `repeat`:**
+- La lista cambia de **orden** (sort, shuffle)
+- Los items tienen **estado interno** (inputs, animaciones)
+- Se hacen **inserciones/eliminaciones** frecuentes en medio de la lista
 
-## Selectores especiales del Shadow DOM
+**Cuándo `.map()` es suficiente:**
+- Lista estática o que solo crece al final
+- No hay estado interno en los items
 
-Todos funcionan igual en Stencil (con `shadow: true`):
+### classMap({ clase: condición })
 
-### `:host` — El propio elemento
+Aplica clases condicionalmente con un objeto.
 
-```css
-:host {
-  display: block;
-  padding: 1rem;
-}
+```ts
+import { classMap } from 'lit/directives/class-map.js';
 
-:host([variant="primary"]) {
-  border-color: blue;
-}
+// Stencil (JSX)
+<span class={{ active: this.isActive, disabled: this.isDisabled }}>
 
-:host(:hover) {
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-}
+// Lit
+html`<span class=${classMap({
+  active: this.isActive,
+  disabled: this.isDisabled,
+})}>`
 ```
 
-### `::slotted()` — Contenido proyectado en slots
+### styleMap({ propiedad: valor })
 
-```css
-::slotted(p) {
-  margin: 0.5rem 0;
-}
+Aplica estilos inline con un objeto.
 
-::slotted([slot="footer"]) {
-  border-top: 1px solid #ccc;
-}
+```ts
+import { styleMap } from 'lit/directives/style-map.js';
+
+// Stencil (JSX)
+<div style={{ backgroundColor: this.color, fontSize: '16px' }}>
+
+// Lit
+html`<div style=${styleMap({
+  backgroundColor: this.color,
+  fontSize: '16px',
+})}>`
 ```
 
-**Limitación:** `::slotted()` solo puede estilizar hijos directos, no nietos.
+Nota: usa camelCase (`backgroundColor`) no kebab-case.
 
-### `::part()` — Partes expuestas desde dentro
+### when(condición, trueCase, falseCase)
 
-**Dentro del componente (exponer):**
-```html
-<div part="header">...</div>
+Alternativa más legible al ternario.
+
+```ts
+import { when } from 'lit/directives/when.js';
+
+// Ternario clásico
+${this.show ? html`<p>Visible</p>` : html`<p>Oculto</p>`}
+
+// when() — las funciones son lazy (no se evalúan si no se necesitan)
+${when(this.show,
+  () => html`<p>Visible</p>`,
+  () => html`<p>Oculto</p>`
+)}
 ```
 
-**Desde fuera (estilizar):**
-```css
-my-card::part(header) {
-  font-style: italic;
-}
+### guard([deps], () => template)
+
+Memoización: solo re-evalúa si las dependencias cambian.
+
+```ts
+import { guard } from 'lit/directives/guard.js';
+
+// Se recalcula en CADA render
+${this.computeExpensiveHTML()}
+
+// Solo se recalcula si this.items cambia
+${guard([this.items], () => this.computeExpensiveHTML())}
 ```
 
-## Formas de personalizar estilos desde fuera
+No tiene equivalente en Stencil — lo más cercano sería memoización manual o `@Watch`.
 
-| Método | Atraviesa Shadow DOM | Ejemplo |
-|--------|---------------------|---------|
-| CSS custom properties | Sí | `--card-bg: red` |
-| `::part()` | Sí (solo partes expuestas) | `my-card::part(header) { ... }` |
-| Atributos + `:host([attr])` | Sí (el componente debe soportarlo) | `variant="primary"` |
-| Clases CSS externas | No | No afectan al Shadow DOM |
+### ifDefined(valor)
 
-### CSS Custom Properties (la más potente)
+Si el valor es `undefined`, el atributo NO se añade al DOM.
 
-Las variables CSS son la **única forma** de pasar estilos arbitrarios a través del Shadow DOM. Funcionan igual en Stencil.
+```ts
+import { ifDefined } from 'lit/directives/if-defined.js';
 
-```css
-/* Padre define */
-my-card { --card-bg: #1e1e3a; }
+// Stencil (JSX)
+<img src={this.url || undefined} />
 
-/* Hijo consume con fallback */
-:host { background: var(--card-bg, #2a2a3e); }
+// Lit
+html`<img src=${ifDefined(this.url)} />`
 ```
 
-## Rendimiento
+Útil para atributos opcionales: `src`, `href`, `aria-*`, `title`.
 
-Lit usa **Constructable Stylesheets** (`adoptedStyleSheets`): si tienes 100 instancias de `<my-card>`, todas comparten la **misma hoja de estilos** en memoria.
+### live(valor)
+
+Compara contra el valor **real del DOM**, no contra el último valor renderizado por Lit.
+
+```ts
+import { live } from 'lit/directives/live.js';
+
+// Sin live: Lit compara con su cache interno
+html`<input .value=${this.text} />`
+
+// Con live: Lit compara con input.value del DOM real
+html`<input .value=${live(this.text)} />`
+```
+
+Útil cuando el usuario puede modificar un input y quieres forzar sincronización.
+
+## Resumen: Stencil (JSX) → Lit (directivas)
+
+| Patrón en Stencil/JSX | Directiva Lit | Import |
+|------------------------|---------------|--------|
+| `key={id}` en listas | `repeat(items, keyFn, tplFn)` | `lit/directives/repeat.js` |
+| `class={{ a: true }}` | `classMap({ a: true })` | `lit/directives/class-map.js` |
+| `style={{ color: 'red' }}` | `styleMap({ color: 'red' })` | `lit/directives/style-map.js` |
+| Ternario `{cond ? ... : ...}` | `when(cond, trueFn, falseFn)` | `lit/directives/when.js` |
+| Memoización manual | `guard([deps], fn)` | `lit/directives/guard.js` |
+| `attr={val \|\| undefined}` | `ifDefined(val)` | `lit/directives/if-defined.js` |
+| — | `live(val)` | `lit/directives/live.js` |
 
 ## Cómo ejecutar
 
@@ -127,8 +159,10 @@ Lit usa **Constructable Stylesheets** (`adoptedStyleSheets`): si tienes 100 inst
 npm run dev
 ```
 
+Prueba a reordenar, añadir y eliminar personas para ver `repeat` en acción. Haz click en una persona para ver `when` + `live`.
+
 ## Siguiente paso
 
 ```bash
-git checkout 08-directivas
+git checkout 09-slots
 ```
