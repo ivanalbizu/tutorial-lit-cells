@@ -1,70 +1,67 @@
-# Tutorial Lit + Cells (viniendo de Stencil)
+# 01 — Setup del proyecto
 
-Tutorial paso a paso para aprender **Lit** y **Cells**, aprovechando conocimientos previos de **Stencil**.
+> Rama: `01-setup` | [Volver al índice](../../tree/main)
 
-## Estructura del tutorial
+## Qué hemos hecho
 
-Cada paso está en una rama independiente. Navega entre ellas con `git checkout <rama>`.
+Configurar un proyecto desde cero con **Vite + Lit + TypeScript**.
 
-### Fase 1 — Fundamentos de Lit
+## Comparativa con Stencil
 
-| Rama | Tema | Conceptos |
-|------|------|-----------|
-| `01-setup` | Setup del proyecto | Vite + Lit + TypeScript |
-| `02-primer-componente` | Primer componente | `@customElement`, `render()`, equivalencias con Stencil |
-| `03-propiedades-estado` | Propiedades y estado | `@property`, `@state`, reactividad |
-| `04-templates-binding` | Templates y binding | Tagged templates, condicionales, listas |
-| `05-eventos` | Eventos y comunicación | `dispatchEvent`, event listeners, padre-hijo |
-| `06-ciclo-de-vida` | Ciclo de vida | `connectedCallback`, `firstUpdated`, `updated` |
-| `07-estilos` | Estilos encapsulados | `static styles`, `css` tag, Shadow DOM |
+| Aspecto | Stencil | Lit + Vite |
+|---------|---------|------------|
+| **Scaffold** | `npm init stencil` | Manual con Vite |
+| **Compilador** | Stencil compiler (produce vanilla WC) | No hay compilador — Lit es runtime puro |
+| **Bundler** | Rollup integrado | Vite (esbuild + Rollup) |
+| **TypeScript** | Integrado | Configuración manual (`tsconfig.json`) |
+| **Dev server** | Integrado | Vite dev server (HMR) |
 
-### Fase 2 — Lit Intermedio
+## Estructura del proyecto
 
-| Rama | Tema | Conceptos |
-|------|------|-----------|
-| `08-directivas` | Directivas | `repeat`, `classMap`, `when`, `guard` |
-| `09-slots` | Slots y composición | `<slot>`, named slots, slotchange |
-| `10-reactive-controllers` | Reactive Controllers | Lógica reutilizable |
-| `11-decoradores-avanzados` | Decoradores avanzados | `@query`, `@queryAll` |
-
-### Fase 3 — Cells
-
-| Rama | Tema | Conceptos |
-|------|------|-----------|
-| `12-intro-cells` | Introducción a Cells | Arquitectura, scaffold |
-| `13-lit-en-cells` | Lit dentro de Cells | Integración componentes |
-| `14-routing-cells` | Routing | Navegación entre páginas |
-| `15-estado-cells` | Estado compartido | Comunicación entre cells |
-
-### Fase 4 — Proyecto práctico
-
-| Rama | Tema | Conceptos |
-|------|------|-----------|
-| `16-proyecto-final` | Mini app completa | Todo lo aprendido |
-
-## Cómo usar este tutorial
-
-```bash
-# Ver todas las ramas disponibles
-git branch -a
-
-# Ir a un paso concreto
-git checkout 01-setup
-
-# Volver al índice
-git checkout main
+```
+tutorial-lit/
+├── index.html          ← Punto de entrada HTML (Vite lo usa como entry)
+├── package.json        ← Dependencias: lit, vite, typescript
+├── tsconfig.json       ← Configuración TypeScript con decoradores
+├── vite.config.ts      ← Configuración de Vite
+└── src/
+    └── index.ts        ← Punto de entrada JS
 ```
 
-## Equivalencias rápidas Stencil → Lit
+## Puntos clave
 
-| Stencil | Lit |
-|---------|-----|
-| `@Component({ tag: 'my-comp' })` | `@customElement('my-comp')` |
-| `@Prop()` | `@property()` |
-| `@State()` | `@state()` |
-| `@Event()` + `EventEmitter` | `this.dispatchEvent(new CustomEvent(...))` |
-| `@Listen()` | `@eventOptions()` o listener manual |
-| `@Element()` | `this` (ya es el elemento) |
-| `@Watch('prop')` | `willUpdate(changedProps)` |
-| JSX en `render()` | Tagged template `` html`...` `` |
-| CSS en archivo separado | `static styles = css`...`` |
+### 1. Lit es runtime, no compilador
+
+En Stencil, el compilador transforma tus componentes en Web Components vanilla.
+En Lit, **no hay compilación** — tu código usa directamente la API de Web Components
+del navegador, con Lit como librería de ayuda en runtime.
+
+### 2. Decoradores experimentales
+
+En `tsconfig.json` activamos:
+```json
+{
+  "experimentalDecorators": true,
+  "useDefineForClassFields": false
+}
+```
+Esto es necesario porque Lit usa decoradores de TypeScript (`@customElement`, `@property`, etc.),
+igual que Stencil (`@Component`, `@Prop`, etc.).
+
+### 3. Vite como dev server
+
+Vite ofrece HMR (Hot Module Replacement) y es extremadamente rápido.
+En Stencil esto viene integrado; aquí lo configuramos aparte.
+
+## Cómo ejecutar
+
+```bash
+npm install
+npm run dev
+```
+
+## Siguiente paso
+
+```bash
+git checkout 02-primer-componente
+```
