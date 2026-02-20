@@ -35,10 +35,10 @@ git checkout main
 
 | Rama | Tema | Conceptos |
 |------|------|-----------|
-| `08-directivas` | Directivas | `repeat`, `classMap`, `when`, `guard` |
-| `09-slots` | Slots y composición | `<slot>`, named slots, slotchange |
-| `10-reactive-controllers` | Reactive Controllers | Lógica reutilizable |
-| `11-decoradores-avanzados` | Decoradores avanzados | `@query`, `@queryAll` |
+| `08-directivas` | [Directivas](#08--directivas) | `repeat`, `classMap`, `when`, `guard` |
+| `09-slots` | [Slots y composición](#09--slots-y-composición) | `<slot>`, named slots, slotchange |
+| `10-reactive-controllers` | [Reactive Controllers](#10--reactive-controllers) | Lógica reutilizable |
+| `11-decoradores-avanzados` | [Decoradores avanzados](#11--decoradores-avanzados) | `@query`, `@queryAll` |
 
 ### Fase 3 — Cells
 
@@ -452,3 +452,135 @@ Las **variables CSS** son la forma más potente — es la única vía de pasar e
 #### Rendimiento
 
 Lit usa **Constructable Stylesheets** (`adoptedStyleSheets`): 100 instancias de `<my-card>` comparten la misma hoja de estilos en memoria.
+
+---
+
+## Fase 2 — Lit Intermedio
+
+---
+
+### 08 — Directivas
+
+> Rama: `08-directivas`
+
+Componente: `<my-directive-demo>` — lista de personas con todas las directivas.
+
+Stencil no tiene directivas porque usa JSX (JavaScript nativo). En Lit, las directivas controlan cómo se renderizan expresiones dentro de `html`...``.
+
+#### Directivas principales
+
+| Directiva | Equivalente Stencil/JSX | Para qué |
+|-----------|------------------------|----------|
+| `repeat(items, keyFn, tplFn)` | `key={id}` en listas | Reordenamiento eficiente con keys |
+| `classMap({ cls: bool })` | `class={{ cls: bool }}` | Clases condicionales |
+| `styleMap({ prop: val })` | `style={{ prop: val }}` | Estilos inline con objeto |
+| `when(cond, trueFn, falseFn)` | Ternario `{cond ? ... : ...}` | Condicional lazy |
+| `guard([deps], fn)` | _(no existe)_ | Memoización |
+| `ifDefined(val)` | `attr={val \|\| undefined}` | Atributo opcional |
+| `live(val)` | _(no existe)_ | Sincronizar con DOM real |
+
+```ts
+import { repeat } from 'lit/directives/repeat.js';
+import { classMap } from 'lit/directives/class-map.js';
+import { styleMap } from 'lit/directives/style-map.js';
+```
+
+---
+
+### 09 — Slots y composición
+
+> Rama: `09-slots`
+
+Componentes: `<my-accordion-item>` + `<my-slot-demo>`.
+
+Los slots son **idénticos** en Stencil y Lit — es API estándar de Shadow DOM.
+
+```html
+<!-- Default slot -->
+<slot></slot>
+
+<!-- Named slot -->
+<slot name="header"></slot>
+
+<!-- Fallback content -->
+<slot name="extra">
+  <p>Se muestra si nadie pasa contenido</p>
+</slot>
+```
+
+#### Estilizar contenido proyectado
+
+```css
+::slotted(p) { margin: 0.5rem 0; }
+```
+
+Limitación: `::slotted()` solo estiliza **hijos directos**, no nietos.
+
+#### slotchange
+
+Solo se dispara cuando cambia el **Light DOM** asignado al slot (hijos del padre), no cuando cambia el Shadow DOM interno del componente.
+
+---
+
+### 10 — Reactive Controllers
+
+> Rama: `10-reactive-controllers`
+
+Controllers: `ClockController`, `MouseController`, `FetchController<T>`.
+
+Lógica reutilizable que participa en el ciclo de vida. **Stencil no tiene equivalente** — lo más cercano son mixins o servicios (sin acceso al lifecycle).
+
+```ts
+import { ReactiveController, ReactiveControllerHost } from 'lit';
+
+export class ClockController implements ReactiveController {
+  host: ReactiveControllerHost;
+  value = new Date();
+
+  constructor(host: ReactiveControllerHost) {
+    this.host = host;
+    host.addController(this);
+  }
+
+  hostConnected() { /* iniciar timer */ }
+  hostDisconnected() { /* limpiar timer */ }
+}
+```
+
+Uso en componente:
+```ts
+private _clock = new ClockController(this);
+// No hace falta connectedCallback/disconnectedCallback
+```
+
+| Framework | Equivalente |
+|-----------|-------------|
+| Lit | Reactive Controllers |
+| React | Custom Hooks |
+| Angular | Services con lifecycle |
+| Vue | Composables |
+
+---
+
+### 11 — Decoradores avanzados
+
+> Rama: `11-decoradores-avanzados`
+
+Componente: `<my-form-demo>` — formulario con acceso declarativo al DOM.
+
+| Decorador | Stencil | Para qué |
+|-----------|---------|----------|
+| `@query('#id')` | `this.el.shadowRoot.querySelector()` | Acceso a elemento |
+| `@queryAll('.cls')` | `this.el.shadowRoot.querySelectorAll()` | Acceso a múltiples |
+| `@queryAsync('#id')` | _(no existe)_ | querySelector que espera al render |
+
+```ts
+@query('#name-input')
+private _nameInput!: HTMLInputElement;
+
+// Uso directo (sin querySelector)
+this._nameInput.focus();
+this._nameInput.value = '';
+```
+
+En Stencil usarías: `this.el.shadowRoot.querySelector('#name-input')`. En Lit, `@query` es declarativo y con cache automático.
