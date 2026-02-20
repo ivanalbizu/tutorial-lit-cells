@@ -1,70 +1,80 @@
-# 02 — Primer componente
+# 03 — Propiedades y estado
 
-> Rama: `02-primer-componente` | Anterior: `01-setup` | [Índice](../../tree/main)
+> Rama: `03-propiedades-estado` | Anterior: `02-primer-componente` | [Índice](../../tree/main)
 
 ## Qué hemos hecho
 
-Crear nuestro primer componente Lit: `<my-greeting>`.
+Dos componentes nuevos que demuestran `@property()` y `@state()`.
 
-## Comparativa Stencil vs Lit
+## Conceptos clave
 
-### Definición del componente
+### @property() → Equivalente a @Prop() en Stencil
 
-**Stencil:**
-```tsx
-import { Component, Prop, h } from '@stencil/core';
+Es una propiedad **pública** que puede establecerse desde fuera del componente.
 
-@Component({
-  tag: 'my-greeting',
-  shadow: true,
-  styleUrl: 'my-greeting.css',
-})
-export class MyGreeting {
-  @Prop() name: string = 'Mundo';
-
-  render() {
-    return <p>Hola, <span class="highlight">{this.name}</span>!</p>;
-  }
-}
-```
-
-**Lit:**
 ```ts
-import { LitElement, html, css } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
+// Stencil
+@Prop() label: string = 'Hola';
+@Prop({ mutable: true }) count: number = 0;
 
-@customElement('my-greeting')
-export class MyGreeting extends LitElement {
-  @property({ type: String, reflect: true })
-  name = 'Mundo';
-
-  static styles = css`...`;
-
-  render() {
-    return html`<p>Hola, <span class="highlight">${this.name}</span>!</p>`;
-  }
-}
+// Lit
+@property({ type: String }) label = 'Hola';
+@property({ type: Number }) count = 0;
 ```
 
-## Diferencias clave
+**Diferencias importantes:**
+- En Stencil necesitas `mutable: true` para poder cambiarla internamente. En Lit **todas las properties son mutables** por defecto.
+- En Stencil, `@Prop()` infiere el tipo del TypeScript. En Lit, **debes indicar `type`** explícitamente para que la conversión atributo → propiedad funcione.
 
-| Aspecto | Stencil | Lit |
-|---------|---------|-----|
-| **Clase base** | Clase simple (el compilador hace la magia) | Extiende `LitElement` |
-| **Registro del tag** | `@Component({ tag: '...' })` | `@customElement('...')` |
-| **Propiedades** | `@Prop()` | `@property()` |
-| **Template** | JSX (`<p>{this.name}</p>`) | Tagged template (`` html`<p>${this.name}</p>` ``) |
-| **Estilos** | Archivo `.css` separado | `static styles = css`...`` inline |
-| **Shadow DOM** | `shadow: true` en decorador | Activado por defecto en `LitElement` |
+### @state() → Equivalente a @State() en Stencil
 
-## Anatomía de un componente Lit
+Es una propiedad **privada** que solo se usa internamente.
 
-1. **Imports**: `LitElement`, `html`, `css` desde `'lit'` y decoradores desde `'lit/decorators.js'`
-2. **`@customElement('tag-name')`**: Registra el componente en el Custom Elements Registry
-3. **`extends LitElement`**: Hereda toda la reactividad y Shadow DOM
-4. **`@property()`**: Declara propiedades reactivas (cambio → re-render automático)
-5. **`static styles`**: Estilos encapsulados en Shadow DOM
-6. **`render()`**: Devuelve el template con `html`...``
+```ts
+// Stencil
+@State() count: number = 0;
+
+// Lit
+@state()
+private _count = 0;
+```
+
+**Comportamiento idéntico**: un cambio en `@state()` dispara un re-render, igual que en Stencil.
+
+### Tipos de propiedades
+
+| Tipo | Atributo HTML | Conversión Lit |
+|------|--------------|----------------|
+| `String` | `name="Ana"` | Directo |
+| `Number` | `age="28"` | `Number("28")` → `28` |
+| `Boolean` | `active` (presente/ausente) | Presente → `true`, ausente → `false` |
+| `Object` | No se usa por atributo | Solo via JS: `el.data = {...}` |
+| `Array` | No se usa por atributo | Solo via JS: `el.items = [...]` |
+
+### Eventos en templates: @click
+
+```ts
+// Stencil (JSX)
+<button onClick={() => this.increment()}>+</button>
+
+// Lit (tagged template)
+<button @click=${this._increment}>+</button>
+```
+
+Nota: en Lit usas `@evento` (prefijo `@`) y pasas la referencia a la función directamente, sin arrow function wrapper (Lit hace el bind automáticamente al componente).
+
+## Componentes de esta rama
+
+### `<my-counter>`
+- `label` (@property) — Texto del título
+- `step` (@property) — Incremento/decremento
+- `_count` (@state) — Valor actual (interno)
+
+### `<my-user-card>`
+- `name` (@property String)
+- `age` (@property Number)
+- `active` (@property Boolean, reflect)
+- `_showDetails` (@state) — Toggle interno
 
 ## Cómo ejecutar
 
@@ -72,12 +82,8 @@ export class MyGreeting extends LitElement {
 npm run dev
 ```
 
-Abre el navegador y verás dos instancias del componente:
-- `<my-greeting>` → "Hola, Mundo!"
-- `<my-greeting name="Lit">` → "Hola, Lit!"
-
 ## Siguiente paso
 
 ```bash
-git checkout 03-propiedades-estado
+git checkout 04-templates-binding
 ```

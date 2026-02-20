@@ -12,18 +12,40 @@
         background: #1a1a2e;
         color: #eee;
       }
+      h2 { color: #c4c4ff; }
+      section { margin-bottom: 2rem; }
+      .row { display: flex; gap: 1rem; flex-wrap: wrap; }
     </style>
   </head>
   <body>
-    <h1>02 — Primer componente</h1>
+    <h1>03 — Propiedades y estado</h1>
 
-    <!-- Uso del componente: igual que en Stencil, es un custom element -->
-    <my-greeting></my-greeting>
+    <section>
+      <h2>my-greeting (repaso)</h2>
+      <my-greeting name="Lit"></my-greeting>
+    </section>
 
-    <hr style="margin: 1rem 0; border-color: #333;" />
+    <section>
+      <h2>my-counter — @property vs @state</h2>
+      <div class="row">
+        <!-- Sin atributos: usa valores por defecto -->
+        <my-counter></my-counter>
 
-    <!-- Pasando una propiedad via atributo (como en Stencil) -->
-    <my-greeting name="Lit"></my-greeting>
+        <!-- Con atributos: Lit convierte "5" (string) a 5 (number) -->
+        <my-counter label="De 5 en 5" step="5"></my-counter>
+      </div>
+    </section>
+
+    <section>
+      <h2>my-user-card — Tipos de propiedades</h2>
+      <div class="row">
+        <!-- Boolean: el atributo "active" sin valor = true -->
+        <my-user-card name="Ana" age="28" active></my-user-card>
+
+        <!-- Sin "active" = false -->
+        <my-user-card name="Carlos" age="35"></my-user-card>
+      </div>
+    </section>
 
     <script type="module" src="/src/index.ts"></script>
   </body>
