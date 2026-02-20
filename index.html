@@ -17,16 +17,15 @@
     </style>
   </head>
   <body>
-    <h1>10 — Reactive Controllers</h1>
+    <h1>11 — Decoradores avanzados</h1>
 
     <section>
-      <h2>Tres controllers en un componente</h2>
+      <h2>Formulario con @query, @queryAll, @queryAsync</h2>
       <p style="color: #888; font-size: 0.9rem;">
-        Lógica reutilizable que participa en el ciclo de vida:
-        <code>ClockController</code>, <code>MouseController</code>,
-        <code>FetchController</code>.
+        Acceso declarativo a elementos del Shadow DOM, sin necesidad de
+        <code>this.shadowRoot.querySelector()</code>.
       </p>
-      <my-controller-demo></my-controller-demo>
+      <my-form-demo></my-form-demo>
     </section>
 
     <script type="module" src="/src/index.ts"></script>
