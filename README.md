@@ -1,67 +1,83 @@
-# 01 — Setup del proyecto
+# 02 — Primer componente
 
-> Rama: `01-setup` | [Volver al índice](../../tree/main)
+> Rama: `02-primer-componente` | Anterior: `01-setup` | [Índice](../../tree/main)
 
 ## Qué hemos hecho
 
-Configurar un proyecto desde cero con **Vite + Lit + TypeScript**.
+Crear nuestro primer componente Lit: `<my-greeting>`.
 
-## Comparativa con Stencil
+## Comparativa Stencil vs Lit
 
-| Aspecto | Stencil | Lit + Vite |
-|---------|---------|------------|
-| **Scaffold** | `npm init stencil` | Manual con Vite |
-| **Compilador** | Stencil compiler (produce vanilla WC) | No hay compilador — Lit es runtime puro |
-| **Bundler** | Rollup integrado | Vite (esbuild + Rollup) |
-| **TypeScript** | Integrado | Configuración manual (`tsconfig.json`) |
-| **Dev server** | Integrado | Vite dev server (HMR) |
+### Definición del componente
 
-## Estructura del proyecto
+**Stencil:**
+```tsx
+import { Component, Prop, h } from '@stencil/core';
 
-```
-tutorial-lit/
-├── index.html          ← Punto de entrada HTML (Vite lo usa como entry)
-├── package.json        ← Dependencias: lit, vite, typescript
-├── tsconfig.json       ← Configuración TypeScript con decoradores
-├── vite.config.ts      ← Configuración de Vite
-└── src/
-    └── index.ts        ← Punto de entrada JS
-```
+@Component({
+  tag: 'my-greeting',
+  shadow: true,
+  styleUrl: 'my-greeting.css',
+})
+export class MyGreeting {
+  @Prop() name: string = 'Mundo';
 
-## Puntos clave
-
-### 1. Lit es runtime, no compilador
-
-En Stencil, el compilador transforma tus componentes en Web Components vanilla.
-En Lit, **no hay compilación** — tu código usa directamente la API de Web Components
-del navegador, con Lit como librería de ayuda en runtime.
-
-### 2. Decoradores experimentales
-
-En `tsconfig.json` activamos:
-```json
-{
-  "experimentalDecorators": true,
-  "useDefineForClassFields": false
+  render() {
+    return <p>Hola, <span class="highlight">{this.name}</span>!</p>;
+  }
 }
 ```
-Esto es necesario porque Lit usa decoradores de TypeScript (`@customElement`, `@property`, etc.),
-igual que Stencil (`@Component`, `@Prop`, etc.).
 
-### 3. Vite como dev server
+**Lit:**
+```ts
+import { LitElement, html, css } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
 
-Vite ofrece HMR (Hot Module Replacement) y es extremadamente rápido.
-En Stencil esto viene integrado; aquí lo configuramos aparte.
+@customElement('my-greeting')
+export class MyGreeting extends LitElement {
+  @property({ type: String, reflect: true })
+  name = 'Mundo';
+
+  static styles = css`...`;
+
+  render() {
+    return html`<p>Hola, <span class="highlight">${this.name}</span>!</p>`;
+  }
+}
+```
+
+## Diferencias clave
+
+| Aspecto | Stencil | Lit |
+|---------|---------|-----|
+| **Clase base** | Clase simple (el compilador hace la magia) | Extiende `LitElement` |
+| **Registro del tag** | `@Component({ tag: '...' })` | `@customElement('...')` |
+| **Propiedades** | `@Prop()` | `@property()` |
+| **Template** | JSX (`<p>{this.name}</p>`) | Tagged template (`` html`<p>${this.name}</p>` ``) |
+| **Estilos** | Archivo `.css` separado | `static styles = css`...`` inline |
+| **Shadow DOM** | `shadow: true` en decorador | Activado por defecto en `LitElement` |
+
+## Anatomía de un componente Lit
+
+1. **Imports**: `LitElement`, `html`, `css` desde `'lit'` y decoradores desde `'lit/decorators.js'`
+2. **`@customElement('tag-name')`**: Registra el componente en el Custom Elements Registry
+3. **`extends LitElement`**: Hereda toda la reactividad y Shadow DOM
+4. **`@property()`**: Declara propiedades reactivas (cambio → re-render automático)
+5. **`static styles`**: Estilos encapsulados en Shadow DOM
+6. **`render()`**: Devuelve el template con `html`...``
 
 ## Cómo ejecutar
 
 ```bash
-npm install
 npm run dev
 ```
+
+Abre el navegador y verás dos instancias del componente:
+- `<my-greeting>` → "Hola, Mundo!"
+- `<my-greeting name="Lit">` → "Hola, Lit!"
 
 ## Siguiente paso
 
 ```bash
-git checkout 02-primer-componente
+git checkout 03-propiedades-estado
 ```

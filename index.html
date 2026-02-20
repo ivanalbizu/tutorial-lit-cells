@@ -15,8 +15,15 @@
     </style>
   </head>
   <body>
-    <h1>Tutorial Lit + Cells</h1>
-    <p>Rama: <code>01-setup</code> — Proyecto configurado correctamente.</p>
+    <h1>02 — Primer componente</h1>
+
+    <!-- Uso del componente: igual que en Stencil, es un custom element -->
+    <my-greeting></my-greeting>
+
+    <hr style="margin: 1rem 0; border-color: #333;" />
+
+    <!-- Pasando una propiedad via atributo (como en Stencil) -->
+    <my-greeting name="Lit"></my-greeting>
 
     <script type="module" src="/src/index.ts"></script>
   </body>
