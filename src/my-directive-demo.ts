@@ -201,6 +201,17 @@ export class MyDirectiveDemo extends LitElement {
     );
   }
 
+  // ═══════════════════════════════════════════════════════════════
+  // DIRECTIVAS USADAS EN ESTE RENDER (ver README para detalles):
+  //
+  // repeat(items, keyFn, tplFn) — Lista con keys (= key={id} en JSX)
+  // classMap({ clase: bool })   — Clases condicionales (= class={{ ... }} en JSX)
+  // styleMap({ prop: val })     — Estilos inline (= style={{ ... }} en JSX)
+  // ifDefined(val)              — Atributo opcional (no se añade si undefined)
+  // when(cond, trueFn, falseFn) — Condicional legible y lazy
+  // live(val)                   — Compara con valor real del DOM
+  // guard([deps], fn)           — Memoización (solo re-evalúa si deps cambian)
+  // ═══════════════════════════════════════════════════════════════
   render() {
     const filtered = this._filteredPeople;
     const selected = this._people.find(p => p.id === this._selectedId);
@@ -228,17 +239,7 @@ export class MyDirectiveDemo extends LitElement {
         >User</button>
       </div>
 
-      <!-- ══════════════════════════════════════════════
-           repeat(items, keyFn, templateFn)
-
-           Equivalente a usar key={id} en JSX de Stencil/React.
-           Sin repeat(), Lit reutiliza nodos por posición.
-           Con repeat(), Lit asocia cada nodo a su key y los
-           mueve/reordena eficientemente en el DOM.
-
-           Úsalo cuando: la lista cambia de orden, o los items
-           tienen estado interno (inputs, animaciones).
-           ══════════════════════════════════════════════ -->
+      <!-- repeat() — lista con keys -->
       <h4>repeat() <span class="directive-label">lista con keys</span></h4>
       <ul>
         ${repeat(
@@ -246,50 +247,23 @@ export class MyDirectiveDemo extends LitElement {
           (p) => p.id,
           (p) => html`
             <li
-              class=${classMap({
-                selected: p.id === this._selectedId,
-              })}
+              class=${classMap({ selected: p.id === this._selectedId })}
               @click=${() => this._select(p.id)}
             >
-              <!-- ══════════════════════════════════════
-                   styleMap({ prop: valor })
-
-                   En Stencil (JSX): style={{ color: 'red' }}
-                   En Lit: style=${styleMap({ color: 'red' })}
-
-                   Convierte un objeto JS a estilos inline.
-                   Usa camelCase: backgroundColor (no background-color)
-                   ══════════════════════════════════════ -->
+              <!-- styleMap() — estilos inline -->
               <span
                 class="status-dot"
-                style=${styleMap({
-                  backgroundColor: p.online ? '#4caf50' : '#666',
-                })}
+                style=${styleMap({ backgroundColor: p.online ? '#4caf50' : '#666' })}
               ></span>
 
-              <!-- ══════════════════════════════════════
-                   ifDefined(valor)
-
-                   Si valor es undefined, el atributo NO se añade al DOM.
-                   Útil para atributos opcionales como src, href, aria-*.
-
-                   En Stencil (JSX): src={this.url || undefined}
-                   ══════════════════════════════════════ -->
+              <!-- ifDefined() — atributo opcional -->
               <img
                 class="avatar"
                 src=${ifDefined(p.avatar)}
                 alt=${ifDefined(p.avatar ? p.name : undefined)}
               />
 
-              <!-- ══════════════════════════════════════
-                   classMap({ clase: condición })
-
-                   En Stencil (JSX): class={{ online: p.online }}
-                   En Lit: class=${classMap({ online: p.online })}
-
-                   Aplica/quita clases según condiciones booleanas.
-                   Más limpio que ternarios para múltiples clases.
-                   ══════════════════════════════════════ -->
+              <!-- classMap() — clases condicionales -->
               <span class=${classMap({
                 'online': p.online,
                 'offline': !p.online,
@@ -305,35 +279,14 @@ export class MyDirectiveDemo extends LitElement {
         )}
       </ul>
 
-      <!-- ══════════════════════════════════════════════
-           when(condición, trueCase, falseCase)
-
-           Alternativa más legible al ternario para condicionales.
-           En Stencil (JSX): {cond ? <A/> : <B/>}
-           En Lit: ${when(cond, () => html`<A/>`, () => html`<B/>`)}
-
-           Ventaja: las funciones son lazy (no se evalúan si no
-           se necesitan), a diferencia del ternario donde ambos
-           lados siempre se evalúan.
-           ══════════════════════════════════════════════ -->
+      <!-- when() — condicional -->
       <h4>when() <span class="directive-label">condicional</span></h4>
       ${when(
         selected,
         () => html`
           <div class="detail">
             <p>Editando: <strong>${selected!.name}</strong></p>
-            <!-- ══════════════════════════════════════
-                 live(valor)
-
-                 Fuerza la comprobación contra el valor REAL del DOM,
-                 no contra el último valor pasado por Lit.
-
-                 Útil para inputs donde el usuario puede haber
-                 cambiado el valor manualmente.
-
-                 Sin live(): Lit compara con su último valor renderizado.
-                 Con live(): Lit compara con input.value del DOM real.
-                 ══════════════════════════════════════ -->
+            <!-- live() — sincroniza con valor real del DOM -->
             <input
               type="text"
               .value=${live(this._editName)}
@@ -345,16 +298,7 @@ export class MyDirectiveDemo extends LitElement {
         () => html`<p style="color:#666; font-style:italic;">Haz click en una persona para editarla</p>`
       )}
 
-      <!-- ══════════════════════════════════════════════
-           guard([deps], () => valor)
-
-           Solo re-evalúa la función si las dependencias cambian.
-           Útil para cálculos costosos que no necesitan
-           recalcularse en cada render.
-
-           No tiene equivalente directo en Stencil — lo más
-           cercano sería un @Watch o memoización manual.
-           ══════════════════════════════════════════════ -->
+      <!-- guard() — memoización -->
       <h4>guard() <span class="directive-label">memoización</span></h4>
       ${guard([this._people], () => {
         const stats = {
