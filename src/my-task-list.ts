@@ -161,6 +161,18 @@ export class MyTaskList extends LitElement {
     }
   }
 
+  // ═══════════════════════════════════════════════════════════════
+  // GUÍA DE BINDING (ver README para comparativa con Stencil)
+  //
+  // Dentro del html`...` usamos estos prefijos:
+  //   ${expr}           → Interpolación de texto
+  //   attr=${valor}     → Binding de atributo
+  //   .prop=${valor}    → Binding de propiedad JS
+  //   @event=${handler} → Binding de evento
+  //   ?attr=${bool}     → Binding booleano (añade/quita atributo)
+  //   condicional       → ternario con html`...` o nothing
+  //   listas            → .map() retornando html`...`
+  // ═══════════════════════════════════════════════════════════════
   render() {
     const pending = this._tasks.filter(t => !t.done).length;
     const filtered = this._filteredTasks;
@@ -168,11 +180,7 @@ export class MyTaskList extends LitElement {
     return html`
       <h3>${this.title}</h3>
 
-      <!-- ═══════════════════════════════════════════════
-           1. BINDING DE EVENTO: @input, @click, @keydown
-           En Stencil (JSX): onInput={...} onClick={...}
-           En Lit:           @input=${...} @click=${...}
-           ═══════════════════════════════════════════════ -->
+      <!-- Evento: @input, @keydown | Propiedad: .value -->
       <div class="input-row">
         <input
           type="text"
@@ -181,12 +189,7 @@ export class MyTaskList extends LitElement {
           @input=${this._onInput}
           @keydown=${this._onKeydown}
         />
-        <!-- ═══════════════════════════════════════════════
-             5. BINDING BOOLEANO: ?disabled=${condición}
-             En Stencil (JSX): disabled={!this.text}
-             En Lit:           ?disabled=${!this.text}
-             El prefijo ? añade/quita el atributo booleano
-             ═══════════════════════════════════════════════ -->
+        <!-- Booleano: ?disabled -->
         <button
           ?disabled=${!this._newTaskText.trim()}
           @click=${this._addTask}
@@ -195,10 +198,7 @@ export class MyTaskList extends LitElement {
         </button>
       </div>
 
-      <!-- ═══════════════════════════════════════════════
-           2. BINDING DE ATRIBUTO: attr=${valor}
-           ?active es un booleano: presente si true
-           ═══════════════════════════════════════════════ -->
+      <!-- Atributo booleano: ?active -->
       <div class="filters">
         <button
           ?active=${this._filter === 'all'}
@@ -214,24 +214,12 @@ export class MyTaskList extends LitElement {
         >Hechas (${this._tasks.length - pending})</button>
       </div>
 
-      <!-- ═══════════════════════════════════════════════
-           6. CONDICIONALES
-           Opción A: ternario      → condicion ? html`...` : html`...`
-           Opción B: con nothing   → condicion ? html`...` : nothing
-           "nothing" es un símbolo de Lit que no renderiza nada
-           (más limpio que '' o null)
-
-           En Stencil se usa el mismo ternario pero en JSX
-           ═══════════════════════════════════════════════ -->
+      <!-- Condicional: ternario con nothing -->
       ${filtered.length === 0
         ? html`<p class="empty">No hay tareas ${this._filter !== 'all' ? 'en este filtro' : nothing}</p>`
         : nothing}
 
-      <!-- ═══════════════════════════════════════════════
-           7. LISTAS: .map() sobre un array
-           En Stencil: {this.items.map(item => <li>...</li>)}
-           En Lit:     ${this.items.map(item => html`<li>...</li>`)}
-           ═══════════════════════════════════════════════ -->
+      <!-- Lista: .map() -->
       <ul>
         ${filtered.map(task => html`
           <li>
@@ -240,22 +228,14 @@ export class MyTaskList extends LitElement {
               .checked=${task.done}
               @change=${() => this._toggleTask(task.id)}
             />
-            <!-- ═══════════════════════════════════════
-                 Clase condicional con ternario
-                 En Stencil: class={{ done: task.done }}
-                 En Lit: class=${task.done ? 'done' : ''}
-                 (en la próxima rama veremos classMap)
-                 ═══════════════════════════════════════ -->
+            <!-- Clase condicional con ternario -->
             <span class=${task.done ? 'done' : ''}>${task.text}</span>
             <button @click=${() => this._removeTask(task.id)}>✕</button>
           </li>
         `)}
       </ul>
 
-      <!-- ═══════════════════════════════════
-           1. INTERPOLACIÓN DE TEXTO: ${expr}
-           Igual que en Stencil: {expr}
-           ═══════════════════════════════════ -->
+      <!-- Interpolación de texto -->
       <div class="count">
         ${this._tasks.length} tareas | ${pending} pendientes
       </div>
