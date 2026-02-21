@@ -1,0 +1,21 @@
+{
+  "name": "cells-app",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "lit": "^3.2.0",
+    "@open-cells/core": "^1.1.2-rc.0",
+    "@open-cells/page-controller": "^1.0.4-rc.0",
+    "@open-cells/element-controller": "^1.0.4-rc.0"
+  },
+  "devDependencies": {
+    "typescript": "~5.6.0",
+    "vite": "^6.0.0"
+  }
+}
