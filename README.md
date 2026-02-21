@@ -1,138 +1,115 @@
-# Paso 12 — Introducción a Open Cells
+# Paso 13 — Componentes Lit dentro de Open Cells
 
-> Rama: `12-intro-cells` | Anterior: `11-decoradores-avanzados` | [Índice](../../tree/main)
+> Rama: `13-lit-en-cells` | Anterior: `12-intro-cells` | [Índice](../../tree/main)
 
-## ¿Qué es Open Cells?
+## Qué hemos hecho
 
-**Open Cells** es un framework de micro-frontends creado por BBVA. Está construido sobre **web components estándar** y se integra perfectamente con **Lit**.
+En esta rama integramos **componentes Lit reutilizables** dentro de una app Open Cells, y añadimos **navegación** con `PageController`.
 
-Sus responsabilidades principales son:
+## Conceptos nuevos
 
-1. **Routing** — Navegación basada en hash (`#!/ruta`)
-2. **Orquestación de páginas** — Cada página es un web component independiente
-3. **Estado compartido** — Sistema pub/sub con canales (channels)
-4. **Lazy loading** — Las páginas se cargan bajo demanda
+### 1. Componentes compartidos (fuera del router)
 
-## Comparación con otros frameworks
-
-| Concepto | Open Cells | Stencil | React | Angular |
-|---|---|---|---|---|
-| Routing | `startApp({ routes })` | `@stencil/router` | `react-router` | `RouterModule` |
-| Páginas | Web Components | Web Components | Componentes React | Componentes Angular |
-| Estado | Channels (pub/sub) | Stores/Stencil Store | Context/Redux | Services/RxJS |
-| Lazy loading | `action: () => import()` | Dynamic imports | `React.lazy()` | `loadChildren` |
-
-## Arquitectura
-
-```
-cells-app/
-├── index.html                    ← Punto de entrada HTML
-├── src/
-│   ├── components/
-│   │   └── app-index.ts          ← Llama a startApp() — bootstrap
-│   ├── router/
-│   │   └── routes.ts             ← Definición de rutas
-│   ├── pages/
-│   │   ├── home/
-│   │   │   └── home-page.ts      ← Página principal (LitElement)
-│   │   ├── about/
-│   │   │   └── about-page.ts     ← Página about (LitElement)
-│   │   └── not-found/
-│   │       └── not-found-page.ts ← Página 404
-│   └── css/
-│       └── main.css              ← Estilos globales
-├── package.json
-├── tsconfig.json
-└── vite.config.ts
-```
-
-## Conceptos clave
-
-### 1. `startApp()` — Bootstrap de la aplicación
-
-```typescript
-// src/components/app-index.ts
-import { startApp } from '@open-cells/core';
-import { routes } from '../router/routes.js';
-
-startApp({
-  routes,                    // Array de rutas
-  mainNode: 'app-content',  // ID del elemento contenedor
-});
-```
-
-El `mainNode` es el ID del elemento HTML donde Open Cells monta las páginas. Debe coincidir con el `id` del elemento en `index.html`:
+El `<app-header>` es un componente Lit normal que vive **fuera** del `mainNode`. Open Cells solo gestiona lo que hay dentro del contenedor de páginas:
 
 ```html
-<app-index id="app-content"></app-index>
-<script type="module" src="./src/components/app-index.ts"></script>
+<!-- index.html -->
+<app-header></app-header>          <!-- Persistente, no lo toca Cells -->
+<div id="app-content"></div>       <!-- Cells monta/desmonta páginas aquí -->
 ```
 
-### 2. Definición de rutas
+### 2. Componentes reutilizables dentro de páginas
+
+`<feature-card>` es un componente Lit puro (sin dependencia de Cells). Se usa dentro de las páginas exactamente igual que en una app Lit sin Cells:
 
 ```typescript
-// src/router/routes.ts
-export const routes = [
-  {
-    path: '/',
-    name: 'home',
-    component: 'home-page',
-    action: async () => {
-      await import('../pages/home/home-page.js');
-    },
-  },
-  // ...más rutas
-];
+// En cualquier página
+import '../../components/feature-card.js';
+
+render() {
+  return html`
+    <feature-card
+      icon="🔥"
+      title="Lit"
+      description="Web Components reactivos"
+    ></feature-card>
+  `;
+}
 ```
 
-Cada ruta tiene:
-- **`path`** — La URL (sin `#!/`)
-- **`name`** — Nombre para navegación programática
-- **`component`** — Tag del web component
-- **`action`** — Import dinámico (lazy loading)
-- **`notFound`** — (opcional) Ruta fallback para 404
+### 3. PageController — Reactive Controller para páginas
 
-### 3. Páginas = Web Components
-
-Cada página es un **LitElement normal**:
+`PageController` es un **Reactive Controller** de Lit (como `ClockController` de la rama 10). Proporciona:
 
 ```typescript
-@customElement('home-page')
-export class HomePage extends LitElement {
+@customElement('demo-page')
+export class DemoPage extends LitElement {
+  // Se instancia como class field
+  pageController = new PageController(this);
+
+  // Lifecycle de Cells — se llama al entrar a la página
+  onPageEnter() {
+    console.log('Página visible');
+  }
+
+  // Lifecycle de Cells — se llama al salir
+  onPageLeave() {
+    console.log('Página oculta');
+  }
+
   render() {
-    return html`<h1>Home</h1>`;
+    return html`
+      <!-- Navegación programática -->
+      <button @click=${() => this.pageController.navigate('home')}>
+        Ir a Home
+      </button>
+    `;
   }
 }
 ```
 
-Open Cells se encarga de:
-- Crear la instancia del componente
-- Insertarlo en el DOM (dentro de `mainNode`)
-- Quitarlo al navegar a otra ruta
+### 4. Navegación global con `navigate()`
 
-### 4. Paquetes de Open Cells
+Para componentes que no son páginas (como el header), se usa la función global:
 
-| Paquete | Función |
-|---|---|
-| `@open-cells/core` | Router, `startApp()`, channels, navegación |
-| `@open-cells/page-controller` | Reactive Controller para páginas (lifecycle, channels) |
-| `@open-cells/element-controller` | Controller base para cualquier componente |
+```typescript
+import { navigate } from '@open-cells/core';
 
-## Ejecutar la app
+// En cualquier componente
+navigate('about');
+```
+
+## Comparación con Stencil
+
+| Concepto | Open Cells + Lit | Stencil |
+|---|---|---|
+| Componente reutilizable | `LitElement` importado | `@Component` importado |
+| Navegación en página | `pageController.navigate('name')` | `this.history.push('/path')` |
+| Navegación global | `navigate('name')` de `@open-cells/core` | `<stencil-route-link>` |
+| Lifecycle de página | `onPageEnter()` / `onPageLeave()` | No existe |
+| Componente persistente | Fuera del `mainNode` | Fuera de `<stencil-router>` |
+
+## Estructura actualizada
+
+```
+cells-app/src/
+├── components/
+│   ├── app-index.ts          ← Bootstrap + importa header
+│   ├── app-header.ts         ← Navegación persistente (NEW)
+│   └── feature-card.ts       ← Componente reutilizable (NEW)
+├── pages/
+│   ├── home/home-page.ts     ← Usa PageController + feature-card
+│   ├── about/about-page.ts   ← Usa PageController
+│   ├── demo/demo-page.ts     ← Demo interactiva con PageController (NEW)
+│   └── not-found/
+└── router/routes.ts          ← Añadida ruta /demo
+```
+
+## Ejecutar
 
 ```bash
 cd cells-app
-pnpm install
 pnpm dev
 ```
 
-La app usa **hash routing**, así que las URLs serán:
-- `http://localhost:5173/#!/`
-- `http://localhost:5173/#!/about`
-
-## Próximos pasos
-
-En las siguientes ramas veremos:
-- **13-lit-en-cells** — Integrar componentes Lit dentro de páginas Cells
-- **14-routing-cells** — Navegación avanzada (parámetros, guards, interceptors)
-- **15-estado-cells** — Estado compartido con channels (pub/sub)
+Navega entre páginas usando el header o los botones. Observa cómo el contador de `onPageEnter` incrementa en la página Demo al volver a ella.

@@ -1,27 +1,18 @@
 // ═══════════════════════════════════════════════════════════════
 // APP-INDEX — Punto de entrada de Open Cells
 //
-// Este archivo NO define un LitElement con render().
-// Su única responsabilidad es llamar a startApp() con la
-// configuración de la aplicación.
+// Importa los componentes compartidos (header) y arranca la app.
 //
-// startApp() recibe:
-//   - routes:    Array de definiciones de rutas
-//   - mainNode:  ID del elemento DOM donde se montan las páginas
+// mainNode apunta a un <div id="app-content"> en index.html.
+// Open Cells monta/desmonta las páginas como hijos de ese div.
 //
-// El elemento <app-index id="app-content"> en index.html
-// actúa como contenedor. Open Cells inyecta/quita los
-// componentes de página como hijos de este elemento.
-//
-// Comparación:
-//   Stencil:  main.ts con defineCustomElements()
-//   React:    index.tsx con ReactDOM.createRoot()
-//   Angular:  main.ts con bootstrapApplication()
-//   Vue:      main.ts con createApp().mount()
+// El header está FUERA del mainNode para que sea persistente
+// y no se destruya al cambiar de página.
 // ═══════════════════════════════════════════════════════════════
 
 import { startApp } from '@open-cells/core';
 import { routes } from '../router/routes.js';
+import './app-header.js';
 
 startApp({
   routes,

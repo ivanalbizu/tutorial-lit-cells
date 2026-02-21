@@ -8,10 +8,17 @@
   </head>
   <body>
     <!--
+      app-header está FUERA del mainNode porque es persistente.
+      Open Cells solo gestiona los hijos de app-content.
+    -->
+    <app-header></app-header>
+
+    <!--
       El id="app-content" DEBE coincidir con el mainNode de startApp().
       Open Cells inyecta aquí los componentes de cada página.
     -->
-    <app-index id="app-content"></app-index>
+    <div id="app-content"></div>
+
     <script type="module" src="./src/components/app-index.ts"></script>
   </body>
 </html>

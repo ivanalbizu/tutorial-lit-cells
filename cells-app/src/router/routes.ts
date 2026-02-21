@@ -37,6 +37,14 @@ export const routes = [
     },
   },
   {
+    path: '/demo',
+    name: 'demo',
+    component: 'demo-page',
+    action: async () => {
+      await import('../pages/demo/demo-page.js');
+    },
+  },
+  {
     path: '/not-found',
     name: 'not-found',
     component: 'not-found-page',
