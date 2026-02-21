@@ -94,6 +94,9 @@ export class AppHeader extends LitElement {
         >
           Demo Lit
         </button>
+        <button @click=${() => this._navigate('cart')}>
+          Carrito
+        </button>
         <button @click=${() => this._navigate('protected')}>
           Zona protegida
         </button>

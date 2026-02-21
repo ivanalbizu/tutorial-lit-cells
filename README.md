@@ -1,94 +1,90 @@
-# Paso 14 — Routing avanzado en Open Cells
+# Paso 15 — Estado compartido con Channels
 
-> Rama: `14-routing-cells` | Anterior: `13-lit-en-cells` | [Índice](../../tree/main)
+> Rama: `15-estado-cells` | Anterior: `14-routing-cells` | [Índice](../../tree/main)
 
 ## Qué hemos hecho
 
-En esta rama exploramos las capacidades avanzadas de routing de Open Cells:
-- **Rutas con parámetros dinámicos** (`:id`)
-- **Interceptor** (guard de autenticación)
-- **Navegación con parámetros**
+En esta rama implementamos un **carrito de compras** usando el sistema de **channels** (pub/sub) de Open Cells para compartir estado entre páginas.
 
 ## Conceptos nuevos
 
-### 1. Rutas con parámetros dinámicos
+### 1. Channels — Pub/Sub global
+
+Open Cells tiene un sistema de mensajería basado en canales. Cualquier componente puede **publicar** datos en un canal y cualquier otro puede **suscribirse** para recibirlos:
 
 ```typescript
-// routes.ts
-{
-  path: '/product/:id',
-  name: 'product',
-  component: 'product-page',
-  action: async () => { await import('../pages/product/product-page.js'); },
-}
-
-// Navegar con parámetros
-pageController.navigate('product', { id: '42' });
-// → URL: #!/product/42
-```
-
-Equivalencias:
-- **Stencil**: `<stencil-route path="/product/:id" />` + `@Prop() match`
-- **React**: `useParams()` de react-router
-- **Angular**: `ActivatedRoute.params`
-- **Vue**: `useRoute().params`
-
-### 2. Interceptor (auth guard)
-
-El interceptor se ejecuta **antes** de cada navegación. Si retorna `{ intercept: true, redirect: 'login' }`, Cells redirige automáticamente:
-
-```typescript
-// app-index.ts
-startApp({
-  routes,
-  mainNode: 'app-content',
-
-  interceptor: (navigation, ctx) => {
-    if (!ctx.isAuthenticated) {
-      return { intercept: true, redirect: 'login' };
-    }
-    return { intercept: false, redirect: '' };
-  },
-
-  // Rutas exentas del interceptor
-  skipNavigations: ['home', 'about', 'login'],
+// Suscribirse a un canal
+this.pageController.subscribe('ch-cart', (items) => {
+  this._items = items;
 });
+
+// Publicar datos en un canal
+this.pageController.publish('ch-cart', updatedItems);
+
+// Dejar de escuchar
+this.pageController.unsubscribe('ch-cart');
 ```
 
-### 3. Gestión del contexto del interceptor
+### 2. Patrón típico: subscribe en onPageEnter, unsubscribe en onPageLeave
 
 ```typescript
-import {
-  updateInterceptorContext,
-  getInterceptorContext,
-} from '@open-cells/core';
+@customElement('cart-page')
+export class CartPage extends LitElement {
+  pageController = new PageController(this);
 
-// Login: marcar como autenticado
-updateInterceptorContext({ isAuthenticated: true, user: 'Juan' });
+  @state() private _items: CartItem[] = [];
 
-// Logout: resetear
-updateInterceptorContext({ isAuthenticated: false, user: '' });
+  onPageEnter() {
+    this.pageController.subscribe('ch-cart', (items: CartItem[]) => {
+      this._items = [...items];
+    });
+  }
 
-// Leer contexto actual
-const ctx = getInterceptorContext();
+  onPageLeave() {
+    this.pageController.unsubscribe('ch-cart');
+  }
+}
 ```
+
+### 3. Flujo del carrito
+
+```
+┌─────────────┐     publish('ch-cart', items)     ┌─────────────┐
+│ product-page │ ──────────────────────────────── → │  cart-page   │
+│              │                                    │              │
+│ "Añadir al   │     subscribe('ch-cart', cb)      │ Muestra      │
+│  carrito"    │ ← ──────────────────────────────  │ los items    │
+└─────────────┘                                    └─────────────┘
+```
+
+1. `product-page` publica el carrito actualizado en `'ch-cart'`
+2. `cart-page` está suscrita a `'ch-cart'` y se actualiza automáticamente
+3. Ambas páginas pueden modificar y publicar cambios
 
 ## Comparación con otros frameworks
 
-| Concepto | Open Cells | Angular | React | Stencil |
-|---|---|---|---|---|
-| Params dinámicos | `/product/:id` | `:id` en Route | `:id` + `useParams` | `:id` + `@Prop() match` |
-| Guard | `interceptor` en startApp | `CanActivate` | `<ProtectedRoute>` | No nativo |
-| Skip guard | `skipNavigations: [...]` | Decorador en ruta | Lógica manual | N/A |
-| Contexto auth | `updateInterceptorContext()` | Service inyectado | Context/Redux | Store manual |
+| Concepto | Open Cells | React | Angular | Vue | Stencil |
+|---|---|---|---|---|---|
+| Estado global | Channels (pub/sub) | Context/Redux/Zustand | Services + RxJS | Pinia/Vuex | Stencil Store |
+| Suscripción | `subscribe(ch, cb)` | `useContext()` / `useSelector()` | `service.obs$.subscribe()` | `store.state` | `onChange()` |
+| Publicación | `publish(ch, data)` | `dispatch()` / `setState()` | `service.next()` | `store.action()` | `state.prop = val` |
+| Desuscripción | `unsubscribe(ch)` | Cleanup de useEffect | `.unsubscribe()` | Automático | Automático |
 
-## Nuevas páginas
+## Ventajas del sistema de channels
 
-| Página | Ruta | Descripción |
-|---|---|---|
-| `product-page` | `/product/:id` | Detalle con parámetro dinámico |
-| `login-page` | `/login` | Login simulado para el interceptor |
-| `protected-page` | `/protected` | Solo accesible tras login |
+1. **Desacoplado** — Las páginas no se conocen entre sí
+2. **Global** — Cualquier componente puede participar
+3. **Simple** — No requiere store, reducers, ni boilerplate
+4. **Lifecycle-aware** — Se limpia con `onPageLeave`
+
+## Archivos nuevos/modificados
+
+| Archivo | Cambio |
+|---|---|
+| `pages/cart/cart-page.ts` | **NEW** — Página del carrito con subscribe |
+| `pages/product/product-page.ts` | Añadido botón "Añadir al carrito" con publish |
+| `router/routes.ts` | Añadida ruta `/cart` |
+| `components/app-header.ts` | Añadido link al carrito |
 
 ## Probar
 
@@ -97,7 +93,18 @@ cd cells-app
 pnpm dev
 ```
 
-1. Desde Home, haz click en "Producto 1", "Producto 2", etc.
-2. Haz click en "Zona protegida" en el header → te redirige a Login
-3. Escribe un nombre y haz click en "Entrar" → accedes a la zona protegida
-4. Haz click en "Cerrar sesión" → vuelve a Home
+1. Ve a Home → click en "Producto 1"
+2. Click en "Añadir al carrito"
+3. Vuelve a Home → click en "Producto 2" → "Añadir al carrito"
+4. Click en "Carrito" en el header
+5. Modifica cantidades o elimina items
+6. Vuelve a productos y añade más — el carrito se mantiene
+
+## Resumen de la Fase 3
+
+| Rama | Tema |
+|---|---|
+| `12-intro-cells` | Scaffold, arquitectura, `startApp()` |
+| `13-lit-en-cells` | Componentes Lit reutilizables, `PageController` |
+| `14-routing-cells` | Params dinámicos, interceptor, auth guard |
+| `15-estado-cells` | Channels pub/sub, carrito de compras |

@@ -36,5 +36,5 @@ startApp({
   },
 
   // Rutas que NO pasan por el interceptor
-  skipNavigations: ['home', 'about', 'demo', 'product', 'login', 'not-found'],
+  skipNavigations: ['home', 'about', 'demo', 'product', 'cart', 'login', 'not-found'],
 });

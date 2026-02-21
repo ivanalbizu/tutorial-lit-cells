@@ -53,6 +53,15 @@ export const routes = [
       await import('../pages/protected/protected-page.js');
     },
   },
+  // Carrito — recibe estado via channels
+  {
+    path: '/cart',
+    name: 'cart',
+    component: 'cart-page',
+    action: async () => {
+      await import('../pages/cart/cart-page.js');
+    },
+  },
   // Página de login (excluida del interceptor via skipNavigations)
   {
     path: '/login',

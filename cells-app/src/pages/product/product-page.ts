@@ -3,21 +3,15 @@ import { customElement, state } from 'lit/decorators.js';
 import { PageController } from '@open-cells/page-controller';
 
 // ═══════════════════════════════════════════════════════════════
-// PÁGINA CON PARÁMETROS DINÁMICOS
+// PÁGINA PRODUCTO — Ahora con publish al carrito
 //
-// Open Cells soporta rutas con parámetros:
-//   { path: '/product/:id', name: 'product', ... }
+// Además de parámetros dinámicos, esta página usa
+// pageController.publish() para añadir productos al carrito.
 //
-// Los parámetros se reciben en onPageEnter() a través
-// del PageController. Se navega con:
-//   pageController.navigate('product', { id: '42' })
+// El canal 'ch-cart' es escuchado por cart-page.
+// Cualquier componente puede publicar en el mismo canal.
 //
-// Comparación con Stencil:
-//   <stencil-route path="/product/:id" componentProps={{ ... }} />
-//   Los params llegan como @Prop() en el componente.
-//
-// En Open Cells, los params se pasan como propiedades
-// al componente de la página automáticamente.
+// publish(channel, data) envía data a TODOS los suscriptores.
 // ═══════════════════════════════════════════════════════════════
 
 // Datos simulados de productos
@@ -125,15 +119,64 @@ export class ProductPage extends LitElement {
     }
 
     button.nav:hover { background: #535bf2; }
+    button.add-cart {
+      background: #4caf50;
+      padding: 0.5rem 1rem;
+      font-size: 0.9rem;
+    }
+    button.add-cart:hover { background: #388e3c; }
+
+    .added-msg {
+      color: #4caf50;
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+    }
   `;
 
+  @state()
+  private _cart: Array<{ id: string; name: string; price: number; quantity: number }> = [];
+
+  @state()
+  private _justAdded = false;
+
   onPageEnter() {
-    // Los parámetros de ruta se asignan como propiedades del componente
-    // Open Cells hace: element[paramName] = value
-    // Así que :id se convierte en this.id, pero como es una propiedad
-    // nativa de HTMLElement, usamos un approach diferente:
-    // Leemos los params del hash de la URL directamente
     this._readParams();
+    this._justAdded = false;
+
+    // Suscribirse al carrito para tener el estado actual
+    this.pageController.subscribe('ch-cart', (items: typeof this._cart) => {
+      this._cart = [...items];
+    });
+  }
+
+  onPageLeave() {
+    this.pageController.unsubscribe('ch-cart');
+  }
+
+  private _addToCart() {
+    if (!this._product) return;
+
+    const existing = this._cart.find(item => item.id === this._productId);
+    let updated;
+    if (existing) {
+      updated = this._cart.map(item =>
+        item.id === this._productId
+          ? { ...item, quantity: item.quantity + 1 }
+          : item
+      );
+    } else {
+      updated = [...this._cart, {
+        id: this._productId,
+        name: this._product.name,
+        price: this._product.price,
+        quantity: 1,
+      }];
+    }
+
+    // Publicar el nuevo estado del carrito
+    this.pageController.publish('ch-cart', updated);
+    this._justAdded = true;
+    setTimeout(() => { this._justAdded = false; }, 2000);
   }
 
   private _readParams() {
@@ -168,6 +211,10 @@ export class ProductPage extends LitElement {
         <h2>${this._product.name}</h2>
         <div class="price">${this._product.price.toFixed(2)} &euro;</div>
         <p class="description">${this._product.description}</p>
+        <button class="add-cart" @click=${this._addToCart} style="margin-top: 1rem;">
+          Añadir al carrito
+        </button>
+        ${this._justAdded ? html`<p class="added-msg">Añadido al carrito</p>` : ''}
       </div>
 
       <div class="nav-buttons">
