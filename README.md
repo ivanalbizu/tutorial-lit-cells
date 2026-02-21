@@ -100,6 +100,76 @@ pnpm dev
 5. Modifica cantidades o elimina items
 6. Vuelve a productos y añade más — el carrito se mantiene
 
+## Cómo gestiona Open Cells las páginas (importante)
+
+Open Cells **no destruye** las páginas al navegar — las oculta y las mantiene en el DOM como caché:
+
+```
+Navegas: Home → About → Demo → Cart
+
+DOM resultante (con viewLimit: 3):
+┌─────────────────────────────┐
+│ #app-content                │
+│  ├─ home-page   state="cached"   ← oculta (display:none)
+│  ├─ about-page  state="cached"   ← oculta
+│  ├─ demo-page   state="inactive" ← oculta (fue desalojada por viewLimit)
+│  └─ cart-page   state="active"   ← VISIBLE
+└─────────────────────────────┘
+```
+
+### CSS obligatorio
+
+Open Cells **no incluye CSS** para ocultar las páginas inactivas. Sin este CSS, todas las páginas se apilan visibles:
+
+```css
+#app-content > [state="cached"],
+#app-content > [state="inactive"] {
+  display: none;
+}
+```
+
+### viewLimit — Control de caché
+
+`viewLimit` (por defecto **3**) controla cuántas páginas se mantienen en el DOM. Al superar el límite, la más antigua se elimina. `persistentPages` excluye páginas del límite:
+
+```typescript
+startApp({
+  routes,
+  mainNode: 'app-content',
+  viewLimit: 2,               // solo 2 en caché
+  persistentPages: ['home'],  // home nunca se destruye
+});
+```
+
+### Ventaja de la caché
+
+Al volver a una página cacheada, se **reactiva instantáneamente** (sin re-crear el componente). El scroll y el estado del DOM se conservan. Es el mismo patrón que `<keep-alive>` en Vue o el Fragment backstack en Android.
+
+### Interceptor — Gotchas
+
+```typescript
+// ❌ MAL — redirect debe ser objeto, no string
+return { intercept: true, redirect: 'login' };
+
+// ✅ BIEN
+return { intercept: true, redirect: { page: 'login' } };
+```
+
+```typescript
+// ❌ MAL — skipNavigations NO evita el interceptor
+// Solo controla qué navegaciones se saltan en el historial
+skipNavigations: ['home', 'about']
+
+// ✅ BIEN — El interceptor decide qué rutas son públicas
+interceptor: (navigation, ctx) => {
+  const target = navigation.to?.page || '';
+  if (PUBLIC_ROUTES.includes(target)) {
+    return { intercept: false, redirect: '' };
+  }
+  // ...verificar auth
+}
+```
+
 ## Resumen de la Fase 3
 
 | Rama | Tema |
