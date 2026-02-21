@@ -53,7 +53,7 @@ git checkout main
 
 | Rama | Tema | Conceptos |
 |------|------|-----------|
-| `16-proyecto-final` | Mini app completa | Todo lo aprendido |
+| `16-proyecto-final` | [Proyecto final](#16--proyecto-final) | CartController, directivas en Cells, slots, @query |
 
 ## Equivalencias rápidas Stencil → Lit
 
@@ -849,3 +849,229 @@ return { intercept: true, redirect: { page: 'login' } };
 ```
 
 `skipNavigations` **no** evita el interceptor — solo controla el historial. El interceptor debe filtrar rutas públicas internamente.
+
+---
+
+## Fase 4 — Proyecto práctico
+
+---
+
+### 16 — Proyecto final
+
+> Rama: `16-proyecto-final`
+
+Integración de **todos los conceptos** del tutorial en un mini e-commerce funcional: catálogo de productos, carrito de compras y layout con slots.
+
+#### Conceptos integrados
+
+| Rama origen | Concepto | Uso en proyecto final |
+|-------------|----------|----------------------|
+| `08` | Directivas `when()`, `classMap()` | Renderizado condicional, clases dinámicas |
+| `09` | Slots y composición | `<page-layout>` con slots named |
+| `10` | Reactive Controllers | `CartController` reutilizable |
+| `11` | `@query` | Referencia directa a elementos del DOM |
+| `13` | `PageController` | Lifecycle de páginas (`onPageEnter`) |
+| `14` | Params dinámicos | Producto por `:id` en la URL |
+| `15` | Channels pub/sub | Estado del carrito compartido |
+
+#### CartController — Reactive Controller + Channels
+
+El componente central del proyecto es un controller que combina **Reactive Controllers** (rama 10) con **Channels pub/sub** (rama 15):
+
+```typescript
+import { ReactiveController, ReactiveControllerHost } from 'lit';
+import { publish, subscribe, unsubscribe } from '@open-cells/core';
+
+export interface CartItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+}
+
+const CHANNEL = 'ch-cart';
+
+export class CartController implements ReactiveController {
+  host: ReactiveControllerHost;
+  items: CartItem[] = [];
+
+  // Getters computados — se recalculan cada render
+  get total(): number {
+    return this.items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+  }
+  get count(): number {
+    return this.items.reduce((sum, i) => sum + i.quantity, 0);
+  }
+  get isEmpty(): boolean {
+    return this.items.length === 0;
+  }
+
+  constructor(host: ReactiveControllerHost) {
+    this.host = host;
+    host.addController(this);
+  }
+
+  // Lifecycle: suscripción al canal
+  hostConnected() {
+    subscribe(CHANNEL, (items: CartItem[]) => {
+      this.items = [...items];
+      this.host.requestUpdate(); // fuerza re-render
+    });
+  }
+
+  hostDisconnected() {
+    unsubscribe(CHANNEL);
+  }
+
+  // Acciones: publish → todos los suscriptores se actualizan
+  add(product: { id: string; name: string; price: number }) {
+    const existing = this.items.find(i => i.id === product.id);
+    const updated = existing
+      ? this.items.map(i => i.id === product.id ? { ...i, quantity: i.quantity + 1 } : i)
+      : [...this.items, { ...product, quantity: 1 }];
+    publish(CHANNEL, updated);
+  }
+
+  remove(id: string) {
+    publish(CHANNEL, this.items.filter(i => i.id !== id));
+  }
+
+  clear() {
+    publish(CHANNEL, []);
+  }
+}
+```
+
+**Comparativa con otros frameworks:**
+
+| Lit + Cells | React | Angular | Vue | Stencil |
+|-------------|-------|---------|-----|---------|
+| `CartController` | `useCart()` hook | `CartService` inyectable | `useCart()` composable | Store manual |
+
+#### page-layout — Composición con slots
+
+Componente wrapper que da estructura consistente a todas las páginas:
+
+```typescript
+@customElement('page-layout')
+export class PageLayout extends LitElement {
+  @property() pageTitle = '';
+
+  render() {
+    return html`
+      <div class="header">
+        <h1>${this.pageTitle}</h1>
+        <slot name="subtitle"></slot>
+      </div>
+      <div class="content">
+        <slot></slot>
+      </div>
+      <div class="footer">
+        <slot name="footer"></slot>
+      </div>
+    `;
+  }
+}
+```
+
+Uso en las páginas:
+
+```html
+<page-layout pageTitle="Mi producto">
+  <span slot="subtitle">Categoría: periféricos</span>
+
+  <!-- Contenido principal (slot default) -->
+  <div class="product-card">...</div>
+
+  <div slot="footer">
+    <button @click=${() => this.cart.clear()}>Vaciar carrito</button>
+  </div>
+</page-layout>
+```
+
+#### Ejemplo: product-page (integrando todo)
+
+```typescript
+@customElement('product-page')
+export class ProductPage extends LitElement {
+  pageController = new PageController(this);
+  cart = new CartController(this);
+
+  @state() private _productId = '';
+  @state() private _product = null;
+  @state() private _justAdded = false;
+
+  // onPageEnter — leer el :id de la URL (params dinámicos, rama 14)
+  onPageEnter() {
+    const hash = window.location.hash;
+    const parts = hash.replace('#!/', '').split('/');
+    this._productId = parts[1] || '1';
+    this._product = PRODUCTS[this._productId] || null;
+  }
+
+  render() {
+    return html`
+      <page-layout pageTitle=${this._product?.name || 'Producto'}>
+        <span slot="subtitle">${this._product?.category}</span>
+
+        <!-- when() — renderizado condicional (rama 08) -->
+        ${when(this._product, () => html`
+          <!-- classMap() — clases dinámicas (rama 08) -->
+          <div class=${classMap({
+            'product-card': true,
+            'in-cart': this.cart.items.some(i => i.id === this._productId)
+          })}>
+            <p>${this._product!.description}</p>
+            <p class="price">${this._product!.price.toFixed(2)} €</p>
+            <button @click=${this._addToCart}>Añadir al carrito</button>
+          </div>
+        `)}
+      </page-layout>
+    `;
+  }
+}
+```
+
+#### Ejemplo: badge en app-header
+
+El `CartController` se reutiliza en el header persistente para mostrar el contador:
+
+```typescript
+@customElement('app-header')
+export class AppHeader extends LitElement {
+  cart = new CartController(this);
+
+  render() {
+    return html`
+      <nav>
+        <!-- ...enlaces... -->
+        <a href="#!/cart">
+          Carrito
+          ${when(!this.cart.isEmpty, () => html`
+            <span class="badge">${this.cart.count}</span>
+          `)}
+        </a>
+      </nav>
+    `;
+  }
+}
+```
+
+#### Patrón: Controller como puente entre Lit y Cells
+
+```
+┌─────────────────────────────────────────────────────┐
+│  CartController (Reactive Controller)               │
+│                                                     │
+│  hostConnected()  ──► subscribe('ch-cart', cb)       │
+│  hostDisconnected() ──► unsubscribe('ch-cart')       │
+│                                                     │
+│  add/remove/clear  ──► publish('ch-cart', data)      │
+│  callback recibido ──► this.host.requestUpdate()     │
+│                                                     │
+│  Resultado: cualquier componente con CartController  │
+│  se sincroniza automáticamente                       │
+└─────────────────────────────────────────────────────┘
+```
+
+Este patrón permite que **app-header**, **product-page** y **cart-page** compartan el mismo estado sin conocerse entre sí.
