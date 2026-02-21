@@ -1,27 +1,24 @@
 import { LitElement, html, css } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
+import { customElement } from 'lit/decorators.js';
+import { when } from 'lit/directives/when.js';
 import { navigate } from '@open-cells/core';
+import { CartController } from '../controllers/cart-controller.js';
 
 // ═══════════════════════════════════════════════════════════════
-// COMPONENTE COMPARTIDO — Header de navegación
+// HEADER — Ahora con CartController para mostrar el badge
 //
-// Este es un componente Lit normal, no una "página" de Cells.
-// Se usa como pieza reutilizable dentro de la app.
+// El CartController funciona en cualquier componente Lit,
+// no solo en páginas de Cells. Aquí lo usamos para mostrar
+// el número de items en el carrito.
 //
-// Para navegar usamos navigate() de @open-cells/core,
-// que es la función global de navegación.
-//
-// Equivalencias:
-//   Stencil:   this.history.push('/about') o <stencil-route-link>
-//   React:     useNavigate() o <Link to="/about">
-//   Angular:   router.navigate(['/about'])
-//   Vue:       router.push('/about')
+// Demuestra que los Reactive Controllers son reutilizables
+// en cualquier contexto (página, componente compartido, etc.)
 // ═══════════════════════════════════════════════════════════════
 
 @customElement('app-header')
 export class AppHeader extends LitElement {
-  @property({ type: String })
-  activePage = '';
+  // CartController funciona aquí igual que en las páginas
+  cart = new CartController(this);
 
   static styles = css`
     :host {
@@ -33,7 +30,7 @@ export class AppHeader extends LitElement {
     nav {
       display: flex;
       align-items: center;
-      gap: 1rem;
+      gap: 0.5rem;
       padding: 0.75rem 1.5rem;
       max-width: 900px;
       margin: 0 auto;
@@ -43,7 +40,7 @@ export class AppHeader extends LitElement {
       font-weight: bold;
       font-size: 1.1rem;
       color: #646cff;
-      margin-right: 1rem;
+      margin-right: auto;
     }
 
     button {
@@ -55,6 +52,7 @@ export class AppHeader extends LitElement {
       border-radius: 4px;
       font-size: 0.9rem;
       transition: all 0.2s;
+      position: relative;
     }
 
     button:hover {
@@ -62,44 +60,35 @@ export class AppHeader extends LitElement {
       background: #2a2a3e;
     }
 
-    button.active {
-      color: #646cff;
-      background: #2a2a3e;
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #4caf50;
+      color: white;
+      font-size: 0.7rem;
+      font-weight: bold;
+      min-width: 1.1rem;
+      height: 1.1rem;
+      border-radius: 50%;
+      margin-left: 0.3rem;
     }
   `;
-
-  private _navigate(name: string) {
-    navigate(name);
-  }
 
   render() {
     return html`
       <nav>
         <span class="logo">Cells + Lit</span>
-        <button
-          class=${this.activePage === 'home' ? 'active' : ''}
-          @click=${() => this._navigate('home')}
-        >
-          Home
-        </button>
-        <button
-          class=${this.activePage === 'about' ? 'active' : ''}
-          @click=${() => this._navigate('about')}
-        >
-          About
-        </button>
-        <button
-          class=${this.activePage === 'demo' ? 'active' : ''}
-          @click=${() => this._navigate('demo')}
-        >
-          Demo Lit
-        </button>
-        <button @click=${() => this._navigate('cart')}>
+        <button @click=${() => navigate('home')}>Home</button>
+        <button @click=${() => navigate('about')}>About</button>
+        <button @click=${() => navigate('demo')}>Demo</button>
+        <button @click=${() => navigate('cart')}>
           Carrito
+          ${when(!this.cart.isEmpty, () => html`
+            <span class="badge">${this.cart.count}</span>
+          `)}
         </button>
-        <button @click=${() => this._navigate('protected')}>
-          Zona protegida
-        </button>
+        <button @click=${() => navigate('protected')}>Login</button>
       </nav>
     `;
   }

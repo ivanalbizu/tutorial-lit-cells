@@ -1,180 +1,112 @@
-# Paso 15 — Estado compartido con Channels
+# Paso 16 — Proyecto final
 
-> Rama: `15-estado-cells` | Anterior: `14-routing-cells` | [Índice](../../tree/main)
+> Rama: `16-proyecto-final` | Anterior: `15-estado-cells` | [Índice](../../tree/main)
 
 ## Qué hemos hecho
 
-En esta rama implementamos un **carrito de compras** usando el sistema de **channels** (pub/sub) de Open Cells para compartir estado entre páginas.
+En esta rama unificamos **todos los conceptos del tutorial** en una app cohesiva. Mejoramos la app existente integrando técnicas de las Fases 1-2 dentro del contexto de Cells.
 
-## Conceptos nuevos
+## Conceptos integrados
 
-### 1. Channels — Pub/Sub global
+### 1. CartController — Reactive Controller + Channels
 
-Open Cells tiene un sistema de mensajería basado en canales. Cualquier componente puede **publicar** datos en un canal y cualquier otro puede **suscribirse** para recibirlos:
-
-```typescript
-// Suscribirse a un canal
-this.pageController.subscribe('ch-cart', (items) => {
-  this._items = items;
-});
-
-// Publicar datos en un canal
-this.pageController.publish('ch-cart', updatedItems);
-
-// Dejar de escuchar
-this.pageController.unsubscribe('ch-cart');
-```
-
-### 2. Patrón típico: subscribe en onPageEnter, unsubscribe en onPageLeave
+Centralizamos la lógica del carrito en un **Reactive Controller** (rama 10) que internamente usa **channels pub/sub** (rama 15):
 
 ```typescript
-@customElement('cart-page')
-export class CartPage extends LitElement {
-  pageController = new PageController(this);
+// controllers/cart-controller.ts
+export class CartController implements ReactiveController {
+  items: CartItem[] = [];
+  get total(): number { /* ... */ }
+  get count(): number { /* ... */ }
 
-  @state() private _items: CartItem[] = [];
+  hostConnected() { subscribe('ch-cart', ...); }   // auto-suscripción
+  hostDisconnected() { unsubscribe('ch-cart'); }    // auto-limpieza
 
-  onPageEnter() {
-    this.pageController.subscribe('ch-cart', (items: CartItem[]) => {
-      this._items = [...items];
-    });
-  }
-
-  onPageLeave() {
-    this.pageController.unsubscribe('ch-cart');
-  }
+  add(product) { publish('ch-cart', updated); }
+  remove(id) { /* ... */ }
+  clear() { /* ... */ }
 }
 ```
 
-### 3. Flujo del carrito
-
-```
-┌─────────────┐     publish('ch-cart', items)     ┌─────────────┐
-│ product-page │ ──────────────────────────────── → │  cart-page   │
-│              │                                    │              │
-│ "Añadir al   │     subscribe('ch-cart', cb)      │ Muestra      │
-│  carrito"    │ ← ──────────────────────────────  │ los items    │
-└─────────────┘                                    └─────────────┘
+Uso en cualquier componente:
+```typescript
+cart = new CartController(this);
+// this.cart.items, this.cart.total, this.cart.add(product)
 ```
 
-1. `product-page` publica el carrito actualizado en `'ch-cart'`
-2. `cart-page` está suscrita a `'ch-cart'` y se actualiza automáticamente
-3. Ambas páginas pueden modificar y publicar cambios
+### 2. Directivas en páginas Cells
 
-## Comparación con otros frameworks
+```typescript
+// when() — condicional lazy (rama 08)
+${when(this.cart.isEmpty,
+  () => this._renderEmpty(),
+  () => this._renderCart()
+)}
 
-| Concepto | Open Cells | React | Angular | Vue | Stencil |
-|---|---|---|---|---|---|
-| Estado global | Channels (pub/sub) | Context/Redux/Zustand | Services + RxJS | Pinia/Vuex | Stencil Store |
-| Suscripción | `subscribe(ch, cb)` | `useContext()` / `useSelector()` | `service.obs$.subscribe()` | `store.state` | `onChange()` |
-| Publicación | `publish(ch, data)` | `dispatch()` / `setState()` | `service.next()` | `store.action()` | `state.prop = val` |
-| Desuscripción | `unsubscribe(ch)` | Cleanup de useEffect | `.unsubscribe()` | Automático | Automático |
+// classMap() — clases condicionales (rama 08)
+<div class=${classMap({ 'product-card': true, 'in-cart': isInCart })}>
 
-## Ventajas del sistema de channels
+// repeat() con keys — lista eficiente (rama 08)
+${repeat(this.cart.items, item => item.id, item => html`...`)}
+```
 
-1. **Desacoplado** — Las páginas no se conocen entre sí
-2. **Global** — Cualquier componente puede participar
-3. **Simple** — No requiere store, reducers, ni boilerplate
-4. **Lifecycle-aware** — Se limpia con `onPageLeave`
+### 3. page-layout con slots (composición, rama 09)
 
-## Archivos nuevos/modificados
+```typescript
+<page-layout pageTitle="Carrito">
+  <span slot="subtitle">${this.cart.count} artículos</span>
+  <div><!-- contenido principal (slot default) --></div>
+  <div slot="footer">Info técnica</div>
+</page-layout>
+```
 
-| Archivo | Cambio |
+### 4. @query — Acceso declarativo al DOM (rama 11)
+
+```typescript
+@query('#cart-list')
+private _cartList!: HTMLElement;
+this._cartList?.scrollTo({ top: 0, behavior: 'smooth' });
+```
+
+### 5. Badge dinámico en el header
+
+El `CartController` funciona en componentes compartidos (no solo páginas Cells):
+
+```typescript
+// app-header.ts — badge con when()
+cart = new CartController(this);
+${when(!this.cart.isEmpty, () => html`
+  <span class="badge">${this.cart.count}</span>
+`)}
+```
+
+## Mapa de conceptos por archivo
+
+| Archivo | Conceptos del tutorial |
 |---|---|
-| `pages/cart/cart-page.ts` | **NEW** — Página del carrito con subscribe |
-| `pages/product/product-page.ts` | Añadido botón "Añadir al carrito" con publish |
-| `router/routes.ts` | Añadida ruta `/cart` |
-| `components/app-header.ts` | Añadido link al carrito |
+| `controllers/cart-controller.ts` | Reactive Controller (10) + Channels (15) |
+| `pages/product/product-page.ts` | PageController (13), CartController, when, classMap, slots |
+| `pages/cart/cart-page.ts` | CartController, repeat, when, @query, slots |
+| `components/app-header.ts` | CartController, when, badge dinámico |
+| `components/page-layout.ts` | Slots: default, named (subtitle, footer) |
 
-## Probar
+## Ejecutar
 
 ```bash
 cd cells-app
 pnpm dev
 ```
 
-1. Ve a Home → click en "Producto 1"
-2. Click en "Añadir al carrito"
-3. Vuelve a Home → click en "Producto 2" → "Añadir al carrito"
-4. Click en "Carrito" en el header
-5. Modifica cantidades o elimina items
-6. Vuelve a productos y añade más — el carrito se mantiene
+1. Home → Producto 1 → "Añadir al carrito" → badge aparece en header
+2. Añade más productos → badge se actualiza en tiempo real
+3. Carrito → botones +/- y "Quitar" → todo reactivo
+4. Borde verde en tarjeta de producto si está en carrito (classMap)
 
-## Cómo gestiona Open Cells las páginas (importante)
+## Resumen del tutorial completo
 
-Open Cells **no destruye** las páginas al navegar — las oculta y las mantiene en el DOM como caché:
-
-```
-Navegas: Home → About → Demo → Cart
-
-DOM resultante (con viewLimit: 3):
-┌─────────────────────────────┐
-│ #app-content                │
-│  ├─ home-page   state="cached"   ← oculta (display:none)
-│  ├─ about-page  state="cached"   ← oculta
-│  ├─ demo-page   state="inactive" ← oculta (fue desalojada por viewLimit)
-│  └─ cart-page   state="active"   ← VISIBLE
-└─────────────────────────────┘
-```
-
-### CSS obligatorio
-
-Open Cells **no incluye CSS** para ocultar las páginas inactivas. Sin este CSS, todas las páginas se apilan visibles:
-
-```css
-#app-content > [state="cached"],
-#app-content > [state="inactive"] {
-  display: none;
-}
-```
-
-### viewLimit — Control de caché
-
-`viewLimit` (por defecto **3**) controla cuántas páginas se mantienen en el DOM. Al superar el límite, la más antigua se elimina. `persistentPages` excluye páginas del límite:
-
-```typescript
-startApp({
-  routes,
-  mainNode: 'app-content',
-  viewLimit: 2,               // solo 2 en caché
-  persistentPages: ['home'],  // home nunca se destruye
-});
-```
-
-### Ventaja de la caché
-
-Al volver a una página cacheada, se **reactiva instantáneamente** (sin re-crear el componente). El scroll y el estado del DOM se conservan. Es el mismo patrón que `<keep-alive>` en Vue o el Fragment backstack en Android.
-
-### Interceptor — Gotchas
-
-```typescript
-// ❌ MAL — redirect debe ser objeto, no string
-return { intercept: true, redirect: 'login' };
-
-// ✅ BIEN
-return { intercept: true, redirect: { page: 'login' } };
-```
-
-```typescript
-// ❌ MAL — skipNavigations NO evita el interceptor
-// Solo controla qué navegaciones se saltan en el historial
-skipNavigations: ['home', 'about']
-
-// ✅ BIEN — El interceptor decide qué rutas son públicas
-interceptor: (navigation, ctx) => {
-  const target = navigation.to?.page || '';
-  if (PUBLIC_ROUTES.includes(target)) {
-    return { intercept: false, redirect: '' };
-  }
-  // ...verificar auth
-}
-```
-
-## Resumen de la Fase 3
-
-| Rama | Tema |
-|---|---|
-| `12-intro-cells` | Scaffold, arquitectura, `startApp()` |
-| `13-lit-en-cells` | Componentes Lit reutilizables, `PageController` |
-| `14-routing-cells` | Params dinámicos, interceptor, auth guard |
-| `15-estado-cells` | Channels pub/sub, carrito de compras |
+| Fase | Ramas | Temas |
+|---|---|---|
+| **1 — Fundamentos** | 01-07 | Componentes, propiedades, templates, eventos, lifecycle, estilos |
+| **2 — Intermedio** | 08-11 | Directivas, slots, Reactive Controllers, decoradores |
+| **3 — Cells** | 12-15 | startApp, PageController, routing, channels |
+| **4 — Proyecto** | 16 | Todo integrado en una app funcional |
