@@ -3,11 +3,11 @@
 //
 // El interceptor se ejecuta ANTES de cada navegación.
 // Recibe el objeto de navegación y un contexto mutable.
-// Si retorna { intercept: true, redirect: 'login' },
-// Cells redirige automáticamente.
 //
-// skipNavigations lista las rutas que NO pasan por el interceptor
-// (para evitar bucles infinitos con login).
+// IMPORTANTE: skipNavigations NO evita el interceptor.
+// Solo controla qué navegaciones se saltan en el historial.
+// Para rutas públicas, el interceptor debe retornar
+// { intercept: false } explícitamente.
 //
 // Comparación:
 //   Angular:  CanActivate guard
@@ -20,21 +20,30 @@ import { startApp } from '@open-cells/core';
 import { routes } from '../router/routes.js';
 import './app-header.js';
 
+// Rutas que NO requieren autenticación
+const PUBLIC_ROUTES = ['home', 'about', 'demo', 'product', 'cart', 'login', 'not-found'];
+
 startApp({
   routes,
   mainNode: 'app-content',
 
-  // Interceptor: verifica autenticación antes de navegar
+  // Interceptor: solo protege rutas que NO son públicas
   interceptor: (
-    _navigation: { name: string },
+    navigation: { to?: { page?: string } },
     ctx: { isAuthenticated?: boolean }
   ) => {
-    if (!ctx.isAuthenticated) {
-      return { intercept: true, redirect: 'login' };
+    const targetPage = navigation.to?.page || '';
+
+    // Si la ruta es pública, dejar pasar
+    if (PUBLIC_ROUTES.includes(targetPage)) {
+      return { intercept: false, redirect: '' };
     }
+
+    // Ruta protegida: verificar autenticación
+    if (!ctx.isAuthenticated) {
+      return { intercept: true, redirect: { page: 'login' } };
+    }
+
     return { intercept: false, redirect: '' };
   },
-
-  // Rutas que NO pasan por el interceptor
-  skipNavigations: ['home', 'about', 'demo', 'product', 'cart', 'login', 'not-found'],
 });
