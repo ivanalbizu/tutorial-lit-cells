@@ -44,10 +44,10 @@ git checkout main
 
 | Rama | Tema | Conceptos |
 |------|------|-----------|
-| `12-intro-cells` | Introducción a Cells | Arquitectura, scaffold |
-| `13-lit-en-cells` | Lit dentro de Cells | Integración componentes |
-| `14-routing-cells` | Routing | Navegación entre páginas |
-| `15-estado-cells` | Estado compartido | Comunicación entre cells |
+| `12-intro-cells` | [Introducción a Cells](#12--introducción-a-open-cells) | `startApp()`, arquitectura, scaffold |
+| `13-lit-en-cells` | [Lit dentro de Cells](#13--componentes-lit-en-cells) | PageController, navegación |
+| `14-routing-cells` | [Routing avanzado](#14--routing-avanzado) | Params dinámicos, interceptor |
+| `15-estado-cells` | [Estado compartido](#15--estado-compartido-con-channels) | Channels pub/sub, carrito |
 
 ### Fase 4 — Proyecto práctico
 
@@ -584,3 +584,220 @@ this._nameInput.value = '';
 ```
 
 En Stencil usarías: `this.el.shadowRoot.querySelector('#name-input')`. En Lit, `@query` es declarativo y con cache automático.
+
+---
+
+## Fase 3 — Open Cells
+
+---
+
+### 12 — Introducción a Open Cells
+
+> Rama: `12-intro-cells`
+
+**Open Cells** es un framework de micro-frontends de BBVA, construido sobre web components estándar.
+
+#### ¿Qué hace Open Cells?
+
+1. **Routing** — Navegación basada en hash (`#!/ruta`)
+2. **Orquestación de páginas** — Cada página es un web component independiente
+3. **Estado compartido** — Sistema pub/sub con canales (channels)
+4. **Lazy loading** — Las páginas se cargan bajo demanda
+
+#### startApp() — Bootstrap
+
+```typescript
+import { startApp } from '@open-cells/core';
+import { routes } from '../router/routes.js';
+
+startApp({
+  routes,                    // Array de rutas
+  mainNode: 'app-content',  // ID del elemento contenedor
+});
+```
+
+#### Definición de rutas
+
+```typescript
+export const routes = [
+  {
+    path: '/',
+    name: 'home',
+    component: 'home-page',
+    action: async () => { await import('../pages/home/home-page.js'); },
+  },
+  // ...
+];
+```
+
+Cada ruta tiene: `path`, `name`, `component`, `action` (lazy loading), y opcionalmente `notFound`.
+
+#### Paquetes
+
+| Paquete | Función |
+|---|---|
+| `@open-cells/core` | Router, `startApp()`, channels, navegación |
+| `@open-cells/page-controller` | Reactive Controller para páginas |
+| `@open-cells/element-controller` | Controller base para cualquier componente |
+
+---
+
+### 13 — Componentes Lit en Cells
+
+> Rama: `13-lit-en-cells`
+
+#### Componentes compartidos vs páginas
+
+Los componentes compartidos (como un header) se colocan **fuera** del `mainNode`:
+
+```html
+<app-header></app-header>          <!-- Persistente -->
+<div id="app-content"></div>       <!-- Cells monta/desmonta páginas aquí -->
+```
+
+#### PageController
+
+`PageController` es un Reactive Controller (como los de la rama 10) específico para páginas de Cells:
+
+```typescript
+@customElement('demo-page')
+export class DemoPage extends LitElement {
+  pageController = new PageController(this);
+
+  onPageEnter() { /* página visible */ }
+  onPageLeave() { /* página oculta */ }
+
+  render() {
+    return html`
+      <button @click=${() => this.pageController.navigate('home')}>
+        Ir a Home
+      </button>
+    `;
+  }
+}
+```
+
+#### Navegación global
+
+Para componentes que no son páginas:
+
+```typescript
+import { navigate } from '@open-cells/core';
+navigate('about');
+```
+
+| Concepto | Open Cells | Stencil |
+|---|---|---|
+| Navegación en página | `pageController.navigate('name')` | `this.history.push('/path')` |
+| Navegación global | `navigate('name')` | `<stencil-route-link>` |
+| Lifecycle de página | `onPageEnter()` / `onPageLeave()` | No existe |
+
+---
+
+### 14 — Routing avanzado
+
+> Rama: `14-routing-cells`
+
+#### Parámetros dinámicos
+
+```typescript
+// Ruta
+{ path: '/product/:id', name: 'product', component: 'product-page', ... }
+
+// Navegar con parámetros
+pageController.navigate('product', { id: '42' });
+// → URL: #!/product/42
+```
+
+#### Interceptor (auth guard)
+
+```typescript
+startApp({
+  routes,
+  mainNode: 'app-content',
+
+  interceptor: (navigation, ctx) => {
+    if (!ctx.isAuthenticated) {
+      return { intercept: true, redirect: 'login' };
+    }
+    return { intercept: false, redirect: '' };
+  },
+
+  skipNavigations: ['home', 'about', 'login'],
+});
+```
+
+#### Gestión del contexto
+
+```typescript
+import { updateInterceptorContext, getInterceptorContext } from '@open-cells/core';
+
+// Login
+updateInterceptorContext({ isAuthenticated: true, user: 'Juan' });
+
+// Logout
+updateInterceptorContext({ isAuthenticated: false });
+
+// Leer
+const ctx = getInterceptorContext();
+```
+
+| Concepto | Open Cells | Angular | React | Stencil |
+|---|---|---|---|---|
+| Params | `/product/:id` | `:id` en Route | `useParams` | `@Prop() match` |
+| Guard | `interceptor` | `CanActivate` | `<ProtectedRoute>` | No nativo |
+| Contexto auth | `updateInterceptorContext()` | Service | Context/Redux | Store manual |
+
+---
+
+### 15 — Estado compartido con Channels
+
+> Rama: `15-estado-cells`
+
+#### Channels — Pub/Sub global
+
+```typescript
+// Suscribirse
+this.pageController.subscribe('ch-cart', (items) => {
+  this._items = items;
+});
+
+// Publicar
+this.pageController.publish('ch-cart', updatedItems);
+
+// Desuscribirse
+this.pageController.unsubscribe('ch-cart');
+```
+
+#### Patrón típico
+
+```typescript
+onPageEnter() {
+  this.pageController.subscribe('ch-cart', (items) => {
+    this._items = [...items];
+  });
+}
+
+onPageLeave() {
+  this.pageController.unsubscribe('ch-cart');
+}
+```
+
+#### Flujo del carrito de compras
+
+1. `product-page` publica el carrito actualizado en `'ch-cart'`
+2. `cart-page` está suscrita y se actualiza automáticamente
+3. Cualquier componente puede publicar/suscribirse al mismo canal
+
+| Concepto | Open Cells | React | Angular | Vue | Stencil |
+|---|---|---|---|---|---|
+| Estado global | Channels (pub/sub) | Context/Redux | Services + RxJS | Pinia | Stencil Store |
+| Suscripción | `subscribe(ch, cb)` | `useSelector()` | `.subscribe()` | `store.state` | `onChange()` |
+| Publicación | `publish(ch, data)` | `dispatch()` | `.next()` | `store.action()` | `state.prop = val` |
+
+#### Ventajas
+
+- **Desacoplado** — Las páginas no se conocen entre sí
+- **Global** — Cualquier componente puede participar
+- **Simple** — No requiere store, reducers, ni boilerplate
+- **Lifecycle-aware** — Se limpia con `onPageLeave`
