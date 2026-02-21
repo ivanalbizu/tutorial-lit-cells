@@ -712,18 +712,24 @@ pageController.navigate('product', { id: '42' });
 #### Interceptor (auth guard)
 
 ```typescript
+const PUBLIC_ROUTES = ['home', 'about', 'login'];
+
 startApp({
   routes,
   mainNode: 'app-content',
 
+  // El interceptor decide qué rutas proteger
   interceptor: (navigation, ctx) => {
+    const target = navigation.to?.page || '';
+    if (PUBLIC_ROUTES.includes(target)) {
+      return { intercept: false, redirect: '' };
+    }
     if (!ctx.isAuthenticated) {
-      return { intercept: true, redirect: 'login' };
+      // redirect DEBE ser objeto { page }, no string
+      return { intercept: true, redirect: { page: 'login' } };
     }
     return { intercept: false, redirect: '' };
   },
-
-  skipNavigations: ['home', 'about', 'login'],
 });
 ```
 
@@ -801,3 +807,45 @@ onPageLeave() {
 - **Global** — Cualquier componente puede participar
 - **Simple** — No requiere store, reducers, ni boilerplate
 - **Lifecycle-aware** — Se limpia con `onPageLeave`
+
+---
+
+### Gestión de páginas en Open Cells (importante)
+
+Open Cells **no destruye** las páginas al navegar — las oculta y las mantiene en el DOM como caché.
+
+#### CSS obligatorio
+
+Open Cells usa un atributo `state` (`active`/`cached`/`inactive`) pero **no incluye CSS** para ocultar las páginas inactivas. Sin este CSS, todas se apilan visibles:
+
+```css
+#app-content > [state="cached"],
+#app-content > [state="inactive"] {
+  display: none;
+}
+```
+
+#### viewLimit — Control de caché
+
+```typescript
+startApp({
+  routes,
+  mainNode: 'app-content',
+  viewLimit: 3,               // máximo 3 páginas en DOM (default)
+  persistentPages: ['home'],  // home nunca se destruye
+});
+```
+
+Al volver a una página cacheada, se reactiva instantáneamente sin re-crearla. Es el mismo patrón que `<keep-alive>` en Vue.
+
+#### Gotchas del interceptor
+
+```typescript
+// ❌ redirect debe ser objeto, no string
+return { intercept: true, redirect: 'login' };
+
+// ✅ Correcto
+return { intercept: true, redirect: { page: 'login' } };
+```
+
+`skipNavigations` **no** evita el interceptor — solo controla el historial. El interceptor debe filtrar rutas públicas internamente.
