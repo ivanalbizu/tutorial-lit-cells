@@ -1,13 +1,19 @@
 // ═══════════════════════════════════════════════════════════════
-// APP-INDEX — Punto de entrada de Open Cells
+// APP-INDEX — Con interceptor para rutas protegidas
 //
-// Importa los componentes compartidos (header) y arranca la app.
+// El interceptor se ejecuta ANTES de cada navegación.
+// Recibe el objeto de navegación y un contexto mutable.
+// Si retorna { intercept: true, redirect: 'login' },
+// Cells redirige automáticamente.
 //
-// mainNode apunta a un <div id="app-content"> en index.html.
-// Open Cells monta/desmonta las páginas como hijos de ese div.
+// skipNavigations lista las rutas que NO pasan por el interceptor
+// (para evitar bucles infinitos con login).
 //
-// El header está FUERA del mainNode para que sea persistente
-// y no se destruya al cambiar de página.
+// Comparación:
+//   Angular:  CanActivate guard
+//   React:    ProtectedRoute + Context
+//   Vue:      beforeEach en vue-router
+//   Stencil:  No tiene equivalente nativo
 // ═══════════════════════════════════════════════════════════════
 
 import { startApp } from '@open-cells/core';
@@ -17,4 +23,18 @@ import './app-header.js';
 startApp({
   routes,
   mainNode: 'app-content',
+
+  // Interceptor: verifica autenticación antes de navegar
+  interceptor: (
+    _navigation: { name: string },
+    ctx: { isAuthenticated?: boolean }
+  ) => {
+    if (!ctx.isAuthenticated) {
+      return { intercept: true, redirect: 'login' };
+    }
+    return { intercept: false, redirect: '' };
+  },
+
+  // Rutas que NO pasan por el interceptor
+  skipNavigations: ['home', 'about', 'demo', 'product', 'login', 'not-found'],
 });

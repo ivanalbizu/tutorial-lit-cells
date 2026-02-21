@@ -1,22 +1,13 @@
 // ═══════════════════════════════════════════════════════════════
-// RUTAS DE OPEN CELLS
+// RUTAS — Con parámetros dinámicos y rutas protegidas
 //
-// Cada ruta define:
-//   - path:      URL de la ruta (sin el #!/)
-//   - name:      Nombre interno para navegación programática
-//   - component: Tag del web component que renderiza la página
-//   - action:    Función async que importa el componente (lazy loading)
-//   - notFound:  (opcional) marca la ruta como fallback 404
+// Novedades en esta rama:
+//   - /product/:id — Ruta con parámetro dinámico
+//   - /protected   — Ruta protegida por interceptor
+//   - /login       — Página de login (redirect del interceptor)
 //
-// Open Cells usa hash-based routing (#!/ruta).
-// El router inyecta el componente de la página como hijo
-// del elemento mainNode definido en startApp().
-//
-// Comparación con otros frameworks:
-//   Stencil:  @stencil/router con <stencil-route path="..." component="...">
-//   React:    react-router con <Route path="..." element={<Page />} />
-//   Angular:  RouterModule.forRoot([{ path, component, loadChildren }])
-//   Vue:      vue-router createRouter({ routes: [{ path, component }] })
+// El parámetro :id se pasa al componente como propiedad.
+// Para navegar: navigate('product', { id: '42' })
 // ═══════════════════════════════════════════════════════════════
 
 export const routes = [
@@ -42,6 +33,33 @@ export const routes = [
     component: 'demo-page',
     action: async () => {
       await import('../pages/demo/demo-page.js');
+    },
+  },
+  // Ruta con parámetro dinámico :id
+  {
+    path: '/product/:id',
+    name: 'product',
+    component: 'product-page',
+    action: async () => {
+      await import('../pages/product/product-page.js');
+    },
+  },
+  // Ruta protegida por el interceptor
+  {
+    path: '/protected',
+    name: 'protected',
+    component: 'protected-page',
+    action: async () => {
+      await import('../pages/protected/protected-page.js');
+    },
+  },
+  // Página de login (excluida del interceptor via skipNavigations)
+  {
+    path: '/login',
+    name: 'login',
+    component: 'login-page',
+    action: async () => {
+      await import('../pages/login/login-page.js');
     },
   },
   {

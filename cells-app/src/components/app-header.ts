@@ -94,6 +94,9 @@ export class AppHeader extends LitElement {
         >
           Demo Lit
         </button>
+        <button @click=${() => this._navigate('protected')}>
+          Zona protegida
+        </button>
       </nav>
     `;
   }

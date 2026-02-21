@@ -129,6 +129,25 @@ export class HomePage extends LitElement {
           this.pageController.navigate('about')
         </div>
       </div>
+
+      <div class="nav-section" style="margin-top: 1rem;">
+        <h3>Rutas con parámetros (:id)</h3>
+        <p style="color: #aaa; margin-bottom: 0.75rem;">
+          Usa <code>navigate('product', { id: '1' })</code> para pasar parámetros:
+        </p>
+        <button @click=${() => this.pageController.navigate('product', { id: '1' })}>
+          Producto 1
+        </button>
+        <button @click=${() => this.pageController.navigate('product', { id: '2' })}>
+          Producto 2
+        </button>
+        <button @click=${() => this.pageController.navigate('product', { id: '3' })}>
+          Producto 3
+        </button>
+        <div class="hint">
+          this.pageController.navigate('product', { id: '2' })
+        </div>
+      </div>
     `;
   }
 }

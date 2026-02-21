@@ -1,115 +1,103 @@
-# Paso 13 — Componentes Lit dentro de Open Cells
+# Paso 14 — Routing avanzado en Open Cells
 
-> Rama: `13-lit-en-cells` | Anterior: `12-intro-cells` | [Índice](../../tree/main)
+> Rama: `14-routing-cells` | Anterior: `13-lit-en-cells` | [Índice](../../tree/main)
 
 ## Qué hemos hecho
 
-En esta rama integramos **componentes Lit reutilizables** dentro de una app Open Cells, y añadimos **navegación** con `PageController`.
+En esta rama exploramos las capacidades avanzadas de routing de Open Cells:
+- **Rutas con parámetros dinámicos** (`:id`)
+- **Interceptor** (guard de autenticación)
+- **Navegación con parámetros**
 
 ## Conceptos nuevos
 
-### 1. Componentes compartidos (fuera del router)
-
-El `<app-header>` es un componente Lit normal que vive **fuera** del `mainNode`. Open Cells solo gestiona lo que hay dentro del contenedor de páginas:
-
-```html
-<!-- index.html -->
-<app-header></app-header>          <!-- Persistente, no lo toca Cells -->
-<div id="app-content"></div>       <!-- Cells monta/desmonta páginas aquí -->
-```
-
-### 2. Componentes reutilizables dentro de páginas
-
-`<feature-card>` es un componente Lit puro (sin dependencia de Cells). Se usa dentro de las páginas exactamente igual que en una app Lit sin Cells:
+### 1. Rutas con parámetros dinámicos
 
 ```typescript
-// En cualquier página
-import '../../components/feature-card.js';
-
-render() {
-  return html`
-    <feature-card
-      icon="🔥"
-      title="Lit"
-      description="Web Components reactivos"
-    ></feature-card>
-  `;
+// routes.ts
+{
+  path: '/product/:id',
+  name: 'product',
+  component: 'product-page',
+  action: async () => { await import('../pages/product/product-page.js'); },
 }
+
+// Navegar con parámetros
+pageController.navigate('product', { id: '42' });
+// → URL: #!/product/42
 ```
 
-### 3. PageController — Reactive Controller para páginas
+Equivalencias:
+- **Stencil**: `<stencil-route path="/product/:id" />` + `@Prop() match`
+- **React**: `useParams()` de react-router
+- **Angular**: `ActivatedRoute.params`
+- **Vue**: `useRoute().params`
 
-`PageController` es un **Reactive Controller** de Lit (como `ClockController` de la rama 10). Proporciona:
+### 2. Interceptor (auth guard)
+
+El interceptor se ejecuta **antes** de cada navegación. Si retorna `{ intercept: true, redirect: 'login' }`, Cells redirige automáticamente:
 
 ```typescript
-@customElement('demo-page')
-export class DemoPage extends LitElement {
-  // Se instancia como class field
-  pageController = new PageController(this);
+// app-index.ts
+startApp({
+  routes,
+  mainNode: 'app-content',
 
-  // Lifecycle de Cells — se llama al entrar a la página
-  onPageEnter() {
-    console.log('Página visible');
-  }
+  interceptor: (navigation, ctx) => {
+    if (!ctx.isAuthenticated) {
+      return { intercept: true, redirect: 'login' };
+    }
+    return { intercept: false, redirect: '' };
+  },
 
-  // Lifecycle de Cells — se llama al salir
-  onPageLeave() {
-    console.log('Página oculta');
-  }
-
-  render() {
-    return html`
-      <!-- Navegación programática -->
-      <button @click=${() => this.pageController.navigate('home')}>
-        Ir a Home
-      </button>
-    `;
-  }
-}
+  // Rutas exentas del interceptor
+  skipNavigations: ['home', 'about', 'login'],
+});
 ```
 
-### 4. Navegación global con `navigate()`
-
-Para componentes que no son páginas (como el header), se usa la función global:
+### 3. Gestión del contexto del interceptor
 
 ```typescript
-import { navigate } from '@open-cells/core';
+import {
+  updateInterceptorContext,
+  getInterceptorContext,
+} from '@open-cells/core';
 
-// En cualquier componente
-navigate('about');
+// Login: marcar como autenticado
+updateInterceptorContext({ isAuthenticated: true, user: 'Juan' });
+
+// Logout: resetear
+updateInterceptorContext({ isAuthenticated: false, user: '' });
+
+// Leer contexto actual
+const ctx = getInterceptorContext();
 ```
 
-## Comparación con Stencil
+## Comparación con otros frameworks
 
-| Concepto | Open Cells + Lit | Stencil |
+| Concepto | Open Cells | Angular | React | Stencil |
+|---|---|---|---|---|
+| Params dinámicos | `/product/:id` | `:id` en Route | `:id` + `useParams` | `:id` + `@Prop() match` |
+| Guard | `interceptor` en startApp | `CanActivate` | `<ProtectedRoute>` | No nativo |
+| Skip guard | `skipNavigations: [...]` | Decorador en ruta | Lógica manual | N/A |
+| Contexto auth | `updateInterceptorContext()` | Service inyectado | Context/Redux | Store manual |
+
+## Nuevas páginas
+
+| Página | Ruta | Descripción |
 |---|---|---|
-| Componente reutilizable | `LitElement` importado | `@Component` importado |
-| Navegación en página | `pageController.navigate('name')` | `this.history.push('/path')` |
-| Navegación global | `navigate('name')` de `@open-cells/core` | `<stencil-route-link>` |
-| Lifecycle de página | `onPageEnter()` / `onPageLeave()` | No existe |
-| Componente persistente | Fuera del `mainNode` | Fuera de `<stencil-router>` |
+| `product-page` | `/product/:id` | Detalle con parámetro dinámico |
+| `login-page` | `/login` | Login simulado para el interceptor |
+| `protected-page` | `/protected` | Solo accesible tras login |
 
-## Estructura actualizada
-
-```
-cells-app/src/
-├── components/
-│   ├── app-index.ts          ← Bootstrap + importa header
-│   ├── app-header.ts         ← Navegación persistente (NEW)
-│   └── feature-card.ts       ← Componente reutilizable (NEW)
-├── pages/
-│   ├── home/home-page.ts     ← Usa PageController + feature-card
-│   ├── about/about-page.ts   ← Usa PageController
-│   ├── demo/demo-page.ts     ← Demo interactiva con PageController (NEW)
-│   └── not-found/
-└── router/routes.ts          ← Añadida ruta /demo
-```
-
-## Ejecutar
+## Probar
 
 ```bash
 cd cells-app
 pnpm dev
 ```
 
-Navega entre páginas usando el header o los botones. Observa cómo el contador de `onPageEnter` incrementa en la página Demo al volver a ella.
+1. Desde Home, haz click en "Producto 1", "Producto 2", etc.
+2. Haz click en "Zona protegida" en el header → te redirige a Login
+3. Escribe un nombre y haz click en "Entrar" → accedes a la zona protegida
+4. Haz click en "Cerrar sesión" → vuelve a Home
