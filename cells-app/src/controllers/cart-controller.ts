@@ -38,14 +38,14 @@ export class CartController implements ReactiveController {
   }
 
   hostConnected() {
-    subscribe(CHANNEL, (items: CartItem[]) => {
+    subscribe(CHANNEL, this.host, (items: CartItem[]) => {
       _sharedItems = items;
       this.host.requestUpdate();
     });
   }
 
   hostDisconnected() {
-    unsubscribe(CHANNEL);
+    unsubscribe(CHANNEL, this.host);
   }
 
   add(product: { id: string; name: string; price: number; image: string }) {
