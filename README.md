@@ -1173,3 +1173,40 @@ El `CartController` combina:
 - **Reactive Controllers** (rama 10) — lifecycle automático
 - **Channels** (rama 15) — pub/sub para sincronizar cualquier componente
 - **Singleton** — estado compartido via variable de módulo
+
+#### API real de Channels (gotcha importante)
+
+La API de `subscribe` y `unsubscribe` de `@open-cells/core` requiere pasar el **nodo HTML** como segundo argumento:
+
+```typescript
+// ❌ Incorrecto — causa "Cannot read properties of undefined (reading 'includes')"
+subscribe('cart-items', (items) => { ... });
+unsubscribe('cart-items');
+
+// ✅ Correcto — pasar el host (elemento HTML) como 2º argumento
+subscribe('cart-items', this.host, (items) => { ... });
+unsubscribe('cart-items', this.host);
+```
+
+Open Cells internamente llama a `node.tagName.includes('-')` para verificar que el nodo es un custom element. Si no pasas el nodo, recibe el callback como "nodo" y falla.
+
+En un Reactive Controller, `this.host` es la referencia al LitElement:
+
+```typescript
+hostConnected() {
+  subscribe('cart-items', this.host, (items: CartItem[]) => {
+    // actualizar estado y forzar re-render
+    this.host.requestUpdate();
+  });
+}
+
+hostDisconnected() {
+  unsubscribe('cart-items', this.host);
+}
+```
+
+`publish` no necesita el nodo — solo canal y datos:
+
+```typescript
+publish('cart-items', updatedItems);
+```
