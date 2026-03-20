@@ -5,12 +5,16 @@ import { classMap } from 'lit/directives/class-map.js';
 import { PageController } from '@open-cells/page-controller';
 import { navigate } from '@open-cells/core';
 import { CartController } from '../../controllers/cart-controller.js';
+import { WishlistController } from '../../controllers/wishlist-controller.js';
+import { ToastController } from '../../controllers/toast-controller.js';
 import { getProductById, Product } from '../../data/products.js';
 
 @customElement('product-page')
 export class ProductPage extends LitElement {
   pageController = new PageController(this);
   cart = new CartController(this);
+  wishlist = new WishlistController(this);
+  toast = new ToastController(this);
 
   @state() private _product: Product | undefined;
   @state() private _justAdded = false;
@@ -77,11 +81,55 @@ export class ProductPage extends LitElement {
       }
     }
 
+    .image-wrapper {
+      position: relative;
+    }
+
     .product img {
       width: 100%;
       border-radius: 12px;
       object-fit: cover;
       aspect-ratio: 4/3;
+    }
+
+    .wish-btn {
+      position: absolute;
+      top: 0.75rem;
+      right: 0.75rem;
+      background: rgba(0, 0, 0, 0.5);
+      border: none;
+      border-radius: 50%;
+      width: 2.5rem;
+      height: 2.5rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s, transform 0.2s;
+    }
+
+    .wish-btn:hover {
+      background: rgba(0, 0, 0, 0.7);
+      transform: scale(1.1);
+    }
+
+    .wish-btn:focus-visible {
+      outline: 2px solid #e91e63;
+      outline-offset: 2px;
+    }
+
+    .wish-btn svg {
+      width: 20px;
+      height: 20px;
+      transition: fill 0.2s;
+    }
+
+    .wish-btn.active svg {
+      fill: #e91e63;
+    }
+
+    .wish-btn:not(.active) svg {
+      fill: rgba(255, 255, 255, 0.6);
     }
 
     .details h1 {
@@ -196,10 +244,23 @@ export class ProductPage extends LitElement {
     const p = this._product!;
     const inCart = this.cart.items.some(i => i.id === p.id);
     const cartItem = this.cart.items.find(i => i.id === p.id);
+    const isWished = this.wishlist.has(p.id);
 
     return html`
       <div class="product">
-        <img src=${p.image} alt="Imagen de ${p.name}" />
+        <div class="image-wrapper">
+          <img src=${p.image} alt="Imagen de ${p.name}" />
+          <button
+            class=${classMap({ 'wish-btn': true, 'active': isWished })}
+            @click=${this._toggleWishlist}
+            aria-label=${isWished ? `Quitar ${p.name} de favoritos` : `Añadir ${p.name} a favoritos`}
+            aria-pressed=${isWished ? 'true' : 'false'}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+          </button>
+        </div>
         <div class="details">
           <span class="category">${p.category}</span>
           <h1>${p.name}</h1>
@@ -239,6 +300,19 @@ export class ProductPage extends LitElement {
       image: this._product.image,
     });
     this._justAdded = true;
+    this.toast.show(`${this._product.name} añadido al carrito`, 'success');
     setTimeout(() => { this._justAdded = false; }, 1500);
+  }
+
+  private _toggleWishlist() {
+    if (!this._product) return;
+    const wasWished = this.wishlist.has(this._product.id);
+    this.wishlist.toggle(this._product.id);
+    this.toast.show(
+      wasWished
+        ? `${this._product.name} eliminado de favoritos`
+        : `${this._product.name} añadido a favoritos`,
+      'info'
+    );
   }
 }

@@ -1,15 +1,33 @@
 import { LitElement, html, css } from 'lit';
-import { customElement } from 'lit/decorators.js';
+import { customElement, state, query } from 'lit/decorators.js';
 import { repeat } from 'lit/directives/repeat.js';
 import { when } from 'lit/directives/when.js';
 import { PageController } from '@open-cells/page-controller';
 import { navigate } from '@open-cells/core';
 import { CartController, CartItem } from '../../controllers/cart-controller.js';
+import { ToastController } from '../../controllers/toast-controller.js';
 
 @customElement('cart-page')
 export class CartPage extends LitElement {
   pageController = new PageController(this);
   cart = new CartController(this);
+  toast = new ToastController(this);
+
+  @state() private _hasUnsavedChanges = false;
+  @query('.cart-list') private _cartList!: HTMLElement;
+
+  // onPageEnter — reset del flag al entrar
+  onPageEnter() {
+    this._hasUnsavedChanges = false;
+  }
+
+  // onPageLeave — cleanup al salir de la página
+  onPageLeave() {
+    if (this._hasUnsavedChanges) {
+      this.toast.show('Cambios del carrito guardados', 'info');
+    }
+    this._hasUnsavedChanges = false;
+  }
 
   static styles = css`
     :host {
@@ -31,7 +49,6 @@ export class CartPage extends LitElement {
       font-size: 0.95rem;
     }
 
-    /* Estado vacío */
     .empty {
       text-align: center;
       padding: 4rem 2rem;
@@ -77,7 +94,6 @@ export class CartPage extends LitElement {
       outline-offset: 2px;
     }
 
-    /* Items del carrito */
     .cart-list {
       list-style: none;
       padding: 0;
@@ -184,7 +200,6 @@ export class CartPage extends LitElement {
       outline-offset: 2px;
     }
 
-    /* Resumen */
     .summary {
       margin-top: 1.5rem;
       padding: 1.5rem;
@@ -319,18 +334,18 @@ export class CartPage extends LitElement {
             <div class="item-actions">
               <button
                 class="qty-btn"
-                @click=${() => this.cart.updateQuantity(item.id, -1)}
+                @click=${() => this._updateQty(item, -1)}
                 aria-label="Reducir cantidad de ${item.name}"
               >−</button>
               <span class="quantity" aria-label="Cantidad: ${item.quantity}">${item.quantity}</span>
               <button
                 class="qty-btn"
-                @click=${() => this.cart.updateQuantity(item.id, 1)}
+                @click=${() => this._updateQty(item, 1)}
                 aria-label="Aumentar cantidad de ${item.name}"
               >+</button>
               <button
                 class="remove-btn"
-                @click=${() => this.cart.remove(item.id)}
+                @click=${() => this._removeItem(item)}
                 aria-label="Eliminar ${item.name} del carrito"
               >Eliminar</button>
             </div>
@@ -344,10 +359,31 @@ export class CartPage extends LitElement {
           <span class="total-count">${this.cart.count} artículo${this.cart.count !== 1 ? 's' : ''}</span>
         </div>
         <div class="summary-actions">
-          <button class="clear-btn" @click=${() => this.cart.clear()} aria-label="Vaciar todo el carrito">Vaciar</button>
+          <button class="clear-btn" @click=${this._clearCart} aria-label="Vaciar todo el carrito">Vaciar</button>
           <button class="checkout-btn">Finalizar compra</button>
         </div>
       </div>
     `;
+  }
+
+  private _updateQty(item: CartItem, delta: number) {
+    this._hasUnsavedChanges = true;
+    this.cart.updateQuantity(item.id, delta);
+    if (item.quantity + delta <= 0) {
+      this.toast.show(`${item.name} eliminado del carrito`, 'info');
+    }
+  }
+
+  private _removeItem(item: CartItem) {
+    this._hasUnsavedChanges = true;
+    this.cart.remove(item.id);
+    this.toast.show(`${item.name} eliminado del carrito`, 'info');
+  }
+
+  private _clearCart() {
+    this._hasUnsavedChanges = true;
+    const count = this.cart.count;
+    this.cart.clear();
+    this.toast.show(`Carrito vaciado (${count} artículos eliminados)`, 'info');
   }
 }

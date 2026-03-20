@@ -1,9 +1,14 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { repeat } from 'lit/directives/repeat.js';
+import { guard } from 'lit/directives/guard.js';
+import { live } from 'lit/directives/live.js';
 import { PageController } from '@open-cells/page-controller';
 import { navigate } from '@open-cells/core';
 import { CartController } from '../../controllers/cart-controller.js';
+import { WishlistController } from '../../controllers/wishlist-controller.js';
+import { SearchController } from '../../controllers/search-controller.js';
+import { ToastController } from '../../controllers/toast-controller.js';
 import { PRODUCTS, Product } from '../../data/products.js';
 import '../../components/product-card.js';
 
@@ -11,14 +16,31 @@ import '../../components/product-card.js';
 export class HomePage extends LitElement {
   pageController = new PageController(this);
   cart = new CartController(this);
+  wishlist = new WishlistController(this);
+  search = new SearchController(this, 300);
+  toast = new ToastController(this);
 
   @state() private _filter = '';
+  @state() private _searchInput = '';
 
   private get _filteredProducts(): Product[] {
-    if (!this._filter) return PRODUCTS;
-    return PRODUCTS.filter(p =>
-      p.category.toLowerCase() === this._filter.toLowerCase()
-    );
+    let result = PRODUCTS;
+
+    if (this._filter) {
+      result = result.filter(p =>
+        p.category.toLowerCase() === this._filter.toLowerCase()
+      );
+    }
+
+    if (this.search.query) {
+      const q = this.search.query.toLowerCase();
+      result = result.filter(p =>
+        p.name.toLowerCase().includes(q) ||
+        p.description.toLowerCase().includes(q)
+      );
+    }
+
+    return result;
   }
 
   private get _categories(): string[] {
@@ -35,7 +57,7 @@ export class HomePage extends LitElement {
 
     .hero {
       text-align: center;
-      margin-bottom: 2.5rem;
+      margin-bottom: 2rem;
     }
 
     .hero h1 {
@@ -49,11 +71,42 @@ export class HomePage extends LitElement {
       font-size: 1.1rem;
     }
 
+    .search-bar {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .search-input {
+      width: 100%;
+      max-width: 500px;
+      padding: 0.6rem 1rem 0.6rem 2.5rem;
+      background: #16213e;
+      border: 1px solid #2a2a4a;
+      border-radius: 8px;
+      color: #e0e0e0;
+      font-size: 0.95rem;
+      font-family: inherit;
+      transition: border-color 0.2s;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23888' viewBox='0 0 24 24'%3E%3Cpath d='M15.5 14h-.79l-.28-.27A6.47 6.47 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: 0.75rem center;
+    }
+
+    .search-input::placeholder {
+      color: #666;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: #646cff;
+    }
+
     .filters {
       display: flex;
       gap: 0.5rem;
       justify-content: center;
-      margin-bottom: 2rem;
+      margin-bottom: 1.5rem;
       flex-wrap: wrap;
     }
 
@@ -115,6 +168,17 @@ export class HomePage extends LitElement {
       gap: 1.5rem;
     }
 
+    .no-results {
+      text-align: center;
+      padding: 3rem;
+      color: #888;
+    }
+
+    .no-results h2 {
+      color: #ccc;
+      margin-bottom: 0.5rem;
+    }
+
     @media (max-width: 600px) {
       :host {
         padding: 1rem;
@@ -140,6 +204,17 @@ export class HomePage extends LitElement {
         <p>Los mejores productos de tecnología</p>
       </section>
 
+      <div class="search-bar">
+        <input
+          class="search-input"
+          type="search"
+          placeholder="Buscar productos..."
+          aria-label="Buscar productos"
+          .value=${live(this._searchInput)}
+          @input=${this._onSearch}
+        />
+      </div>
+
       <div class="filters">
         <fieldset>
           <legend>Filtrar por categoría</legend>
@@ -159,24 +234,59 @@ export class HomePage extends LitElement {
       </div>
 
       <p class="results-info" aria-live="polite">
-        ${filtered.length} producto${filtered.length !== 1 ? 's' : ''}${this._filter ? ` en ${this._filter}` : ''}
+        ${filtered.length} producto${filtered.length !== 1 ? 's' : ''}${this._filter ? ` en ${this._filter}` : ''}${this.search.query ? ` para "${this.search.query}"` : ''}
       </p>
 
-      <div class="grid" role="list" aria-label="Catálogo de productos">
-        ${repeat(filtered, p => p.id, p => html`
-          <div role="listitem">
-            <product-card
-              productId=${p.id}
-              name=${p.name}
-              .price=${p.price}
-              image=${p.image}
-              category=${p.category}
-              @go-to-detail=${(e: CustomEvent) => navigate('product', { id: e.detail.id })}
-              @add-to-cart=${(e: CustomEvent) => this.cart.add(e.detail)}
-            ></product-card>
+      ${filtered.length > 0
+        ? html`
+          <div class="grid" role="list" aria-label="Catálogo de productos">
+            ${repeat(filtered, p => p.id, p => html`
+              <div role="listitem">
+                ${guard([p.id, this.wishlist.has(p.id)], () => html`
+                  <product-card
+                    productId=${p.id}
+                    name=${p.name}
+                    .price=${p.price}
+                    image=${p.image}
+                    category=${p.category}
+                    ?wishlisted=${this.wishlist.has(p.id)}
+                    @go-to-detail=${(e: CustomEvent) => navigate('product', { id: e.detail.id })}
+                    @add-to-cart=${(e: CustomEvent) => this._handleAddToCart(e)}
+                    @toggle-wishlist=${(e: CustomEvent) => this._handleToggleWishlist(e)}
+                  ></product-card>
+                `)}
+              </div>
+            `)}
           </div>
-        `)}
-      </div>
+        `
+        : html`
+          <div class="no-results">
+            <h2>Sin resultados</h2>
+            <p>No se encontraron productos con esos filtros.</p>
+          </div>
+        `
+      }
     `;
+  }
+
+  private _onSearch(e: InputEvent) {
+    const value = (e.target as HTMLInputElement).value;
+    this._searchInput = value;
+    this.search.update(value);
+  }
+
+  private _handleAddToCart(e: CustomEvent) {
+    this.cart.add(e.detail);
+    this.toast.show(`${e.detail.name} añadido al carrito`, 'success');
+  }
+
+  private _handleToggleWishlist(e: CustomEvent) {
+    const { id, name } = e.detail;
+    const wasInWishlist = this.wishlist.has(id);
+    this.wishlist.toggle(id);
+    this.toast.show(
+      wasInWishlist ? `${name} eliminado de favoritos` : `${name} añadido a favoritos`,
+      'info'
+    );
   }
 }
