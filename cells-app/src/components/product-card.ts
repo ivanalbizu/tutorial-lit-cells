@@ -14,18 +14,32 @@ export class ProductCard extends LitElement {
       display: block;
     }
 
-    .card {
+    article {
       background: #16213e;
       border: 1px solid #2a2a4a;
       border-radius: 12px;
       overflow: hidden;
-      transition: transform 0.2s, border-color 0.2s;
-      cursor: pointer;
+      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
     }
 
-    .card:hover {
+    article:hover {
       transform: translateY(-4px);
       border-color: #646cff;
+      box-shadow: 0 8px 24px rgba(100, 108, 255, 0.15);
+    }
+
+    .image-link {
+      display: block;
+      cursor: pointer;
+      overflow: hidden;
+    }
+
+    .image-link:focus-visible {
+      outline: 2px solid #646cff;
+      outline-offset: -2px;
     }
 
     .card-image {
@@ -33,10 +47,16 @@ export class ProductCard extends LitElement {
       height: 200px;
       object-fit: cover;
       display: block;
+      transition: transform 0.3s;
+    }
+
+    .image-link:hover .card-image {
+      transform: scale(1.05);
     }
 
     .card-body {
       padding: 1rem;
+      flex: 1;
     }
 
     .category {
@@ -53,6 +73,21 @@ export class ProductCard extends LitElement {
       color: #e0e0e0;
     }
 
+    .title-link {
+      color: inherit;
+      text-decoration: none;
+      cursor: pointer;
+      background: none;
+      border: none;
+      font: inherit;
+      padding: 0;
+      text-align: left;
+    }
+
+    .title-link:hover {
+      color: #646cff;
+    }
+
     .footer {
       display: flex;
       align-items: center;
@@ -66,7 +101,7 @@ export class ProductCard extends LitElement {
       color: #4caf50;
     }
 
-    button {
+    .add-btn {
       background: #646cff;
       color: white;
       border: none;
@@ -74,33 +109,70 @@ export class ProductCard extends LitElement {
       border-radius: 6px;
       cursor: pointer;
       font-size: 0.85rem;
-      transition: background 0.2s;
+      font-family: inherit;
+      font-weight: 500;
+      transition: background 0.2s, transform 0.1s;
     }
 
-    button:hover {
+    .add-btn:hover {
       background: #535bf2;
+    }
+
+    .add-btn:active {
+      transform: scale(0.95);
+    }
+
+    .add-btn:focus-visible {
+      outline: 2px solid #646cff;
+      outline-offset: 2px;
     }
   `;
 
   render() {
     return html`
-      <div class="card">
-        <img
-          class="card-image"
-          src=${this.image}
-          alt=${this.name}
+      <article aria-label="${this.name}, ${this.price.toFixed(2)} euros">
+        <div
+          class="image-link"
+          role="link"
+          tabindex="0"
+          aria-label="Ver detalle de ${this.name}"
           @click=${this._goToDetail}
-        />
+          @keydown=${this._handleImageKey}
+        >
+          <img
+            class="card-image"
+            src=${this.image}
+            alt=""
+            loading="lazy"
+          />
+        </div>
         <div class="card-body">
           <div class="category">${this.category}</div>
-          <h3 @click=${this._goToDetail}>${this.name}</h3>
+          <h3>
+            <button class="title-link" @click=${this._goToDetail}>
+              ${this.name}
+            </button>
+          </h3>
         </div>
         <div class="footer">
-          <span class="price">${this.price.toFixed(2)} &euro;</span>
-          <button @click=${this._addToCart}>Añadir</button>
+          <span class="price" aria-label="Precio: ${this.price.toFixed(2)} euros">
+            ${this.price.toFixed(2)} &euro;
+          </span>
+          <button
+            class="add-btn"
+            @click=${this._addToCart}
+            aria-label="Añadir ${this.name} al carrito"
+          >Añadir</button>
         </div>
-      </div>
+      </article>
     `;
+  }
+
+  private _handleImageKey(e: KeyboardEvent) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      this._goToDetail();
+    }
   }
 
   private _goToDetail() {

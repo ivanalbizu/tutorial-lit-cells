@@ -13,12 +13,15 @@ export class AppHeader extends LitElement {
       display: block;
       background: #16213e;
       border-bottom: 2px solid #646cff;
+      position: sticky;
+      top: 0;
+      z-index: 100;
     }
 
     nav {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.25rem;
       padding: 0.75rem 1.5rem;
       max-width: 1100px;
       margin: 0 auto;
@@ -30,32 +33,47 @@ export class AppHeader extends LitElement {
       color: #646cff;
       margin-right: auto;
       cursor: pointer;
+      background: none;
+      border: none;
+      font-family: inherit;
     }
 
     .logo:hover {
       color: #535bf2;
     }
 
-    button {
+    .nav-btn {
       background: none;
-      border: none;
-      color: #aaa;
+      border: 1px solid transparent;
+      color: #ccc;
       cursor: pointer;
       padding: 0.5rem 1rem;
       border-radius: 6px;
       font-size: 0.95rem;
-      transition: all 0.2s;
+      font-family: inherit;
+      transition: color 0.2s, background 0.2s, border-color 0.2s;
     }
 
-    button:hover {
+    .nav-btn:hover {
       color: white;
       background: #2a2a3e;
     }
 
+    .nav-btn:focus-visible {
+      outline: 2px solid #646cff;
+      outline-offset: 2px;
+    }
+
     .cart-btn {
-      display: flex;
+      display: inline-flex;
       align-items: center;
-      gap: 0.4rem;
+      gap: 0.5rem;
+    }
+
+    .cart-icon {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
     }
 
     .badge {
@@ -66,8 +84,8 @@ export class AppHeader extends LitElement {
       color: white;
       font-size: 0.7rem;
       font-weight: bold;
-      min-width: 1.2rem;
-      height: 1.2rem;
+      min-width: 1.25rem;
+      height: 1.25rem;
       border-radius: 50%;
       padding: 0 0.3rem;
     }
@@ -75,13 +93,18 @@ export class AppHeader extends LitElement {
 
   render() {
     return html`
-      <nav>
-        <span class="logo" @click=${() => navigate('home')}>TechShop</span>
-        <button @click=${() => navigate('home')}>Catálogo</button>
-        <button class="cart-btn" @click=${() => navigate('cart')}>
+      <nav aria-label="Navegación principal">
+        <button class="logo" @click=${() => navigate('home')} aria-label="TechShop — Ir al inicio">
+          TechShop
+        </button>
+        <button class="nav-btn" @click=${() => navigate('home')}>Catálogo</button>
+        <button class="nav-btn cart-btn" @click=${() => navigate('cart')} aria-label="Carrito${!this.cart.isEmpty ? `, ${this.cart.count} artículos` : ', vacío'}">
+          <svg class="cart-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M7 18c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm10 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zM7.16 14.26l.04-.12.94-1.7h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1 1 0 0020.04 4H5.21l-.94-2H1v2h2l3.6 7.59-1.35 2.44C4.52 15.37 5.48 17 7 17h12v-2H7.42c-.14 0-.25-.11-.25-.25z"/>
+          </svg>
           Carrito
           ${when(!this.cart.isEmpty, () => html`
-            <span class="badge">${this.cart.count}</span>
+            <span class="badge" aria-live="polite">${this.cart.count}</span>
           `)}
         </button>
       </nav>

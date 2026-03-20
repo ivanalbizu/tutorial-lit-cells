@@ -28,24 +28,24 @@ export class HomePage extends LitElement {
   static styles = css`
     :host {
       display: block;
-      padding: 2rem;
+      padding: 2rem 1.5rem;
       max-width: 1100px;
       margin: 0 auto;
     }
 
     .hero {
       text-align: center;
-      margin-bottom: 2rem;
+      margin-bottom: 2.5rem;
     }
 
     .hero h1 {
-      font-size: 2rem;
+      font-size: 2.2rem;
       color: #646cff;
       margin-bottom: 0.5rem;
     }
 
     .hero p {
-      color: #888;
+      color: #999;
       font-size: 1.1rem;
     }
 
@@ -57,26 +57,56 @@ export class HomePage extends LitElement {
       flex-wrap: wrap;
     }
 
-    .filters button {
+    .filters fieldset {
+      border: none;
+      padding: 0;
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .filters legend {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+    }
+
+    .filter-btn {
       background: #16213e;
       border: 1px solid #2a2a4a;
-      color: #aaa;
-      padding: 0.4rem 1rem;
+      color: #ccc;
+      padding: 0.45rem 1.1rem;
       border-radius: 20px;
       cursor: pointer;
       font-size: 0.85rem;
+      font-family: inherit;
       transition: all 0.2s;
     }
 
-    .filters button:hover {
+    .filter-btn:hover {
       border-color: #646cff;
       color: white;
     }
 
-    .filters button.active {
+    .filter-btn:focus-visible {
+      outline: 2px solid #646cff;
+      outline-offset: 2px;
+    }
+
+    .filter-btn[aria-pressed="true"] {
       background: #646cff;
       border-color: #646cff;
       color: white;
+    }
+
+    .results-info {
+      text-align: center;
+      color: #888;
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
     }
 
     .grid {
@@ -84,39 +114,67 @@ export class HomePage extends LitElement {
       grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
       gap: 1.5rem;
     }
+
+    @media (max-width: 600px) {
+      :host {
+        padding: 1rem;
+      }
+
+      .hero h1 {
+        font-size: 1.6rem;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+    }
   `;
 
   render() {
+    const filtered = this._filteredProducts;
+
     return html`
-      <div class="hero">
+      <section class="hero">
         <h1>TechShop</h1>
         <p>Los mejores productos de tecnología</p>
-      </div>
+      </section>
 
       <div class="filters">
-        <button
-          class=${this._filter === '' ? 'active' : ''}
-          @click=${() => this._filter = ''}
-        >Todos</button>
-        ${repeat(this._categories, c => c, c => html`
+        <fieldset>
+          <legend>Filtrar por categoría</legend>
           <button
-            class=${this._filter === c ? 'active' : ''}
-            @click=${() => this._filter = c}
-          >${c}</button>
-        `)}
+            class="filter-btn"
+            aria-pressed=${this._filter === '' ? 'true' : 'false'}
+            @click=${() => this._filter = ''}
+          >Todos</button>
+          ${repeat(this._categories, c => c, c => html`
+            <button
+              class="filter-btn"
+              aria-pressed=${this._filter === c ? 'true' : 'false'}
+              @click=${() => this._filter = c}
+            >${c}</button>
+          `)}
+        </fieldset>
       </div>
 
-      <div class="grid">
-        ${repeat(this._filteredProducts, p => p.id, p => html`
-          <product-card
-            productId=${p.id}
-            name=${p.name}
-            .price=${p.price}
-            image=${p.image}
-            category=${p.category}
-            @go-to-detail=${(e: CustomEvent) => navigate('product', { id: e.detail.id })}
-            @add-to-cart=${(e: CustomEvent) => this.cart.add(e.detail)}
-          ></product-card>
+      <p class="results-info" aria-live="polite">
+        ${filtered.length} producto${filtered.length !== 1 ? 's' : ''}${this._filter ? ` en ${this._filter}` : ''}
+      </p>
+
+      <div class="grid" role="list" aria-label="Catálogo de productos">
+        ${repeat(filtered, p => p.id, p => html`
+          <div role="listitem">
+            <product-card
+              productId=${p.id}
+              name=${p.name}
+              .price=${p.price}
+              image=${p.image}
+              category=${p.category}
+              @go-to-detail=${(e: CustomEvent) => navigate('product', { id: e.detail.id })}
+              @add-to-cart=${(e: CustomEvent) => this.cart.add(e.detail)}
+            ></product-card>
+          </div>
         `)}
       </div>
     `;

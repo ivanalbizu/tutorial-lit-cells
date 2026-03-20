@@ -26,35 +26,54 @@ export class ProductPage extends LitElement {
   static styles = css`
     :host {
       display: block;
-      padding: 2rem;
+      padding: 2rem 1.5rem;
       max-width: 900px;
       margin: 0 auto;
     }
 
     .back {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
       background: none;
-      border: none;
-      color: #646cff;
+      border: 1px solid #2a2a4a;
+      color: #ccc;
       cursor: pointer;
       font-size: 0.9rem;
+      font-family: inherit;
       margin-bottom: 1.5rem;
-      padding: 0;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      transition: all 0.2s;
     }
 
     .back:hover {
-      text-decoration: underline;
+      border-color: #646cff;
+      color: white;
+    }
+
+    .back:focus-visible {
+      outline: 2px solid #646cff;
+      outline-offset: 2px;
+    }
+
+    .back svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
     }
 
     .product {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 2rem;
+      gap: 2.5rem;
       align-items: start;
     }
 
     @media (max-width: 640px) {
       .product {
         grid-template-columns: 1fr;
+        gap: 1.5rem;
       }
     }
 
@@ -72,16 +91,20 @@ export class ProductPage extends LitElement {
     }
 
     .category {
+      display: inline-block;
       color: #646cff;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       text-transform: uppercase;
       letter-spacing: 0.05em;
       margin-bottom: 1rem;
+      background: rgba(100, 108, 255, 0.1);
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
     }
 
     .description {
       color: #aaa;
-      line-height: 1.6;
+      line-height: 1.7;
       margin-bottom: 1.5rem;
     }
 
@@ -96,6 +119,7 @@ export class ProductPage extends LitElement {
       display: flex;
       gap: 1rem;
       align-items: center;
+      flex-wrap: wrap;
     }
 
     .add-btn {
@@ -103,9 +127,19 @@ export class ProductPage extends LitElement {
       border: none;
       border-radius: 8px;
       font-size: 1rem;
+      font-family: inherit;
       cursor: pointer;
       transition: all 0.2s;
       font-weight: 600;
+    }
+
+    .add-btn:focus-visible {
+      outline: 2px solid #646cff;
+      outline-offset: 2px;
+    }
+
+    .add-btn:active {
+      transform: scale(0.96);
     }
 
     .add-btn.default {
@@ -142,13 +176,14 @@ export class ProductPage extends LitElement {
   render() {
     return html`
       <button class="back" @click=${() => navigate('home')}>
-        &larr; Volver al catálogo
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+        Volver al catálogo
       </button>
 
       ${when(this._product,
         () => this._renderProduct(),
         () => html`
-          <div class="not-found">
+          <div class="not-found" role="alert">
             <h2>Producto no encontrado</h2>
             <p>El producto que buscas no existe.</p>
           </div>
@@ -164,12 +199,14 @@ export class ProductPage extends LitElement {
 
     return html`
       <div class="product">
-        <img src=${p.image} alt=${p.name} />
+        <img src=${p.image} alt="Imagen de ${p.name}" />
         <div class="details">
-          <div class="category">${p.category}</div>
+          <span class="category">${p.category}</span>
           <h1>${p.name}</h1>
           <p class="description">${p.description}</p>
-          <div class="price">${p.price.toFixed(2)} &euro;</div>
+          <div class="price" aria-label="Precio: ${p.price.toFixed(2)} euros">
+            ${p.price.toFixed(2)} &euro;
+          </div>
           <div class="actions">
             <button
               class=${classMap({
@@ -178,11 +215,12 @@ export class ProductPage extends LitElement {
                 'added': this._justAdded,
               })}
               @click=${this._addToCart}
+              aria-label=${this._justAdded ? `${p.name} añadido al carrito` : `Añadir ${p.name} al carrito`}
             >
-              ${this._justAdded ? 'Añadido' : 'Añadir al carrito'}
+              ${this._justAdded ? 'Añadido ✓' : 'Añadir al carrito'}
             </button>
             ${when(inCart, () => html`
-              <span class="in-cart-info">
+              <span class="in-cart-info" aria-live="polite">
                 ${cartItem!.quantity} en el carrito
               </span>
             `)}
