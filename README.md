@@ -1,112 +1,76 @@
-# Paso 16 — Proyecto final
+# 17 — E-commerce con Lit + Cells
 
-> Rama: `16-proyecto-final` | Anterior: `15-estado-cells` | [Índice](../../tree/main)
+> Rama: `17-ecommerce` | Anterior: `16-proyecto-final` | [Índice](../../tree/main)
 
-## Qué hemos hecho
+Mini e-commerce funcional que integra todos los conceptos del tutorial.
 
-En esta rama unificamos **todos los conceptos del tutorial** en una app cohesiva. Mejoramos la app existente integrando técnicas de las Fases 1-2 dentro del contexto de Cells.
+## Funcionalidades
 
-## Conceptos integrados
+- **Catálogo** — Grid de productos con filtro por categoría
+- **Detalle** — Página de producto con params dinámicos (`:id`)
+- **Carrito** — Gestión de cantidades, eliminar, vaciar
+- **Badge** — Contador en el header sincronizado en tiempo real
+- **Lazy loading** — Cada página se carga bajo demanda
 
-### 1. CartController — Reactive Controller + Channels
+## Estructura
 
-Centralizamos la lógica del carrito en un **Reactive Controller** (rama 10) que internamente usa **channels pub/sub** (rama 15):
-
-```typescript
-// controllers/cart-controller.ts
-export class CartController implements ReactiveController {
-  items: CartItem[] = [];
-  get total(): number { /* ... */ }
-  get count(): number { /* ... */ }
-
-  hostConnected() { subscribe('ch-cart', ...); }   // auto-suscripción
-  hostDisconnected() { unsubscribe('ch-cart'); }    // auto-limpieza
-
-  add(product) { publish('ch-cart', updated); }
-  remove(id) { /* ... */ }
-  clear() { /* ... */ }
-}
+```
+cells-app/src/
+├── components/
+│   ├── app-index.ts         # Bootstrap con startApp()
+│   ├── app-header.ts        # Header persistente + badge carrito
+│   └── product-card.ts      # Tarjeta de producto reutilizable
+├── controllers/
+│   └── cart-controller.ts   # Reactive Controller + Channels
+├── data/
+│   └── products.ts          # Catálogo de productos
+├── pages/
+│   ├── home/home-page.ts    # Catálogo con filtros
+│   ├── product/product-page.ts  # Detalle con añadir al carrito
+│   └── cart/cart-page.ts    # Carrito completo
+├── router/
+│   └── routes.ts            # 3 rutas: home, product/:id, cart
+├── css/
+│   └── main.css             # Estilos globales + visibilidad páginas
+└── types/
+    └── open-cells.d.ts      # Tipados para Open Cells
 ```
 
-Uso en cualquier componente:
-```typescript
-cart = new CartController(this);
-// this.cart.items, this.cart.total, this.cart.add(product)
-```
+## Conceptos aplicados
 
-### 2. Directivas en páginas Cells
+| Concepto | Rama origen | Uso |
+|----------|------------|-----|
+| `@customElement` | 02 | Todos los componentes |
+| `@property`, `@state` | 03 | Props de product-card, estado interno |
+| `repeat()`, `when()`, `classMap()` | 08 | Listas, condicionales, clases dinámicas |
+| Custom Events | 05 | product-card → home-page |
+| Reactive Controllers | 10 | CartController |
+| Channels pub/sub | 15 | Estado del carrito compartido |
+| PageController | 13 | Lifecycle de páginas |
+| Params dinámicos | 14 | product/:id |
+| Lazy loading | 12 | Importación dinámica en rutas |
 
-```typescript
-// when() — condicional lazy (rama 08)
-${when(this.cart.isEmpty,
-  () => this._renderEmpty(),
-  () => this._renderCart()
-)}
-
-// classMap() — clases condicionales (rama 08)
-<div class=${classMap({ 'product-card': true, 'in-cart': isInCart })}>
-
-// repeat() con keys — lista eficiente (rama 08)
-${repeat(this.cart.items, item => item.id, item => html`...`)}
-```
-
-### 3. page-layout con slots (composición, rama 09)
-
-```typescript
-<page-layout pageTitle="Carrito">
-  <span slot="subtitle">${this.cart.count} artículos</span>
-  <div><!-- contenido principal (slot default) --></div>
-  <div slot="footer">Info técnica</div>
-</page-layout>
-```
-
-### 4. @query — Acceso declarativo al DOM (rama 11)
-
-```typescript
-@query('#cart-list')
-private _cartList!: HTMLElement;
-this._cartList?.scrollTo({ top: 0, behavior: 'smooth' });
-```
-
-### 5. Badge dinámico en el header
-
-El `CartController` funciona en componentes compartidos (no solo páginas Cells):
-
-```typescript
-// app-header.ts — badge con when()
-cart = new CartController(this);
-${when(!this.cart.isEmpty, () => html`
-  <span class="badge">${this.cart.count}</span>
-`)}
-```
-
-## Mapa de conceptos por archivo
-
-| Archivo | Conceptos del tutorial |
-|---|---|
-| `controllers/cart-controller.ts` | Reactive Controller (10) + Channels (15) |
-| `pages/product/product-page.ts` | PageController (13), CartController, when, classMap, slots |
-| `pages/cart/cart-page.ts` | CartController, repeat, when, @query, slots |
-| `components/app-header.ts` | CartController, when, badge dinámico |
-| `components/page-layout.ts` | Slots: default, named (subtitle, footer) |
-
-## Ejecutar
+## Cómo ejecutar
 
 ```bash
 cd cells-app
+pnpm install   # Usar pnpm, no npm
 pnpm dev
 ```
 
-1. Home → Producto 1 → "Añadir al carrito" → badge aparece en header
-2. Añade más productos → badge se actualiza en tiempo real
-3. Carrito → botones +/- y "Quitar" → todo reactivo
-4. Borde verde en tarjeta de producto si está en carrito (classMap)
+Navega a `http://localhost:5173`
 
-## Resumen del tutorial completo
+## Flujo de datos
 
-| Fase | Ramas | Temas |
-|---|---|---|
-| **1 — Fundamentos** | 01-07 | Componentes, propiedades, templates, eventos, lifecycle, estilos |
-| **2 — Intermedio** | 08-11 | Directivas, slots, Reactive Controllers, decoradores |
-| **3 — Cells** | 12-15 | startApp, PageController, routing, channels |
-| **4 — Proyecto** | 16 | Todo integrado en una app funcional |
+```
+product-card  ──@add-to-cart──▶  home-page  ──cart.add()──▶  CartController
+                                                                    │
+                                                              publish('cart-items')
+                                                                    │
+                                                    ┌───────────────┼───────────────┐
+                                                    ▼               ▼               ▼
+                                               app-header      cart-page      product-page
+                                               (badge)         (listado)     (cantidad en carrito)
+```
+
+Todos los componentes con `CartController` se sincronizan automáticamente via Channels.

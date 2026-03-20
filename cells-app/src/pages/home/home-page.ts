@@ -1,152 +1,123 @@
 import { LitElement, html, css } from 'lit';
-import { customElement } from 'lit/decorators.js';
+import { customElement, state } from 'lit/decorators.js';
+import { repeat } from 'lit/directives/repeat.js';
 import { PageController } from '@open-cells/page-controller';
-import '../../components/feature-card.js';
-
-// ═══════════════════════════════════════════════════════════════
-// PÁGINA HOME con PageController
-//
-// PageController es un Reactive Controller (como los que
-// vimos en la rama 10-reactive-controllers).
-//
-// Proporciona:
-//   - navigate(name, params?) — Navegar a otra página
-//   - subscribe/unsubscribe — Canales pub/sub (rama 15)
-//   - onPageEnter/onPageLeave — Lifecycle de la página
-//
-// Se instancia como class field, igual que ClockController:
-//   pageController = new PageController(this);
-//
-// Stencil equivalente:
-//   No existe. Usarías @stencil/router + servicios manuales.
-// ═══════════════════════════════════════════════════════════════
+import { navigate } from '@open-cells/core';
+import { CartController } from '../../controllers/cart-controller.js';
+import { PRODUCTS, Product } from '../../data/products.js';
+import '../../components/product-card.js';
 
 @customElement('home-page')
 export class HomePage extends LitElement {
   pageController = new PageController(this);
+  cart = new CartController(this);
+
+  @state() private _filter = '';
+
+  private get _filteredProducts(): Product[] {
+    if (!this._filter) return PRODUCTS;
+    return PRODUCTS.filter(p =>
+      p.category.toLowerCase() === this._filter.toLowerCase()
+    );
+  }
+
+  private get _categories(): string[] {
+    return [...new Set(PRODUCTS.map(p => p.category))];
+  }
 
   static styles = css`
     :host {
       display: block;
       padding: 2rem;
-      max-width: 800px;
+      max-width: 1100px;
       margin: 0 auto;
     }
 
-    h1 {
+    .hero {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .hero h1 {
+      font-size: 2rem;
       color: #646cff;
       margin-bottom: 0.5rem;
     }
 
-    .subtitle {
+    .hero p {
       color: #888;
+      font-size: 1.1rem;
+    }
+
+    .filters {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
       margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .filters button {
+      background: #16213e;
+      border: 1px solid #2a2a4a;
+      color: #aaa;
+      padding: 0.4rem 1rem;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+
+    .filters button:hover {
+      border-color: #646cff;
+      color: white;
+    }
+
+    .filters button.active {
+      background: #646cff;
+      border-color: #646cff;
+      color: white;
     }
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 1rem;
-      margin-bottom: 2rem;
-    }
-
-    .nav-section {
-      padding: 1.5rem;
-      background: #2a2a3e;
-      border-radius: 8px;
-      border: 1px solid #333;
-    }
-
-    .nav-section h3 {
-      color: #c4c4ff;
-      margin: 0 0 0.75rem;
-    }
-
-    button {
-      padding: 0.5rem 1rem;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      background: #646cff;
-      color: white;
-      font-size: 0.9rem;
-      margin-right: 0.5rem;
-    }
-
-    button:hover { background: #535bf2; }
-
-    code {
-      background: #1a1a2e;
-      padding: 0.15rem 0.4rem;
-      border-radius: 3px;
-      color: #4caf50;
-      font-size: 0.85em;
-    }
-
-    .hint {
-      margin-top: 0.75rem;
-      font-size: 0.8rem;
-      color: #666;
-      font-family: monospace;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1.5rem;
     }
   `;
 
   render() {
     return html`
-      <h1>Home</h1>
-      <p class="subtitle">App Open Cells + Lit — Componentes integrados</p>
+      <div class="hero">
+        <h1>TechShop</h1>
+        <p>Los mejores productos de tecnología</p>
+      </div>
+
+      <div class="filters">
+        <button
+          class=${this._filter === '' ? 'active' : ''}
+          @click=${() => this._filter = ''}
+        >Todos</button>
+        ${repeat(this._categories, c => c, c => html`
+          <button
+            class=${this._filter === c ? 'active' : ''}
+            @click=${() => this._filter = c}
+          >${c}</button>
+        `)}
+      </div>
 
       <div class="grid">
-        <feature-card
-          icon="🏗️"
-          title="Open Cells"
-          description="Framework de micro-frontends de BBVA con routing y estado"
-        ></feature-card>
-        <feature-card
-          icon="🔥"
-          title="Lit"
-          description="Web Components reactivos, ligeros y estándar"
-        ></feature-card>
-        <feature-card
-          icon="🔄"
-          title="PageController"
-          description="Reactive Controller para lifecycle y navegación de páginas"
-        ></feature-card>
-      </div>
-
-      <div class="nav-section">
-        <h3>Navegación con PageController</h3>
-        <p style="color: #aaa; margin-bottom: 0.75rem;">
-          Usa <code>pageController.navigate(name)</code> para navegar programáticamente:
-        </p>
-        <button @click=${() => this.pageController.navigate('about')}>
-          Ir a About
-        </button>
-        <button @click=${() => this.pageController.navigate('demo')}>
-          Ir a Demo Lit
-        </button>
-        <div class="hint">
-          this.pageController.navigate('about')
-        </div>
-      </div>
-
-      <div class="nav-section" style="margin-top: 1rem;">
-        <h3>Rutas con parámetros (:id)</h3>
-        <p style="color: #aaa; margin-bottom: 0.75rem;">
-          Usa <code>navigate('product', { id: '1' })</code> para pasar parámetros:
-        </p>
-        <button @click=${() => this.pageController.navigate('product', { id: '1' })}>
-          Producto 1
-        </button>
-        <button @click=${() => this.pageController.navigate('product', { id: '2' })}>
-          Producto 2
-        </button>
-        <button @click=${() => this.pageController.navigate('product', { id: '3' })}>
-          Producto 3
-        </button>
-        <div class="hint">
-          this.pageController.navigate('product', { id: '2' })
-        </div>
+        ${repeat(this._filteredProducts, p => p.id, p => html`
+          <product-card
+            productId=${p.id}
+            name=${p.name}
+            .price=${p.price}
+            image=${p.image}
+            category=${p.category}
+            @go-to-detail=${(e: CustomEvent) => navigate('product', { id: e.detail.id })}
+            @add-to-cart=${(e: CustomEvent) => this.cart.add(e.detail)}
+          ></product-card>
+        `)}
       </div>
     `;
   }

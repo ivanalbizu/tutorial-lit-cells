@@ -3,217 +3,204 @@ import { customElement, state } from 'lit/decorators.js';
 import { when } from 'lit/directives/when.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { PageController } from '@open-cells/page-controller';
+import { navigate } from '@open-cells/core';
 import { CartController } from '../../controllers/cart-controller.js';
-import '../../components/page-layout.js';
-
-// ═══════════════════════════════════════════════════════════════
-// PÁGINA PRODUCTO — Proyecto final
-//
-// Integra conceptos de todo el tutorial:
-//   - PageController (rama 13) — lifecycle y navegación
-//   - CartController (Reactive Controller, rama 10) — lógica del carrito
-//   - Directivas when, classMap (rama 08) — renderizado condicional
-//   - page-layout con slots (rama 09) — composición
-//   - Params dinámicos (rama 14) — :id en la URL
-//   - Channels pub/sub (rama 15) — via CartController
-// ═══════════════════════════════════════════════════════════════
-
-const PRODUCTS: Record<string, { name: string; price: number; description: string; category: string }> = {
-  '1': { name: 'Teclado mecánico', price: 89.99, description: 'Switches Cherry MX Blue, retroiluminado RGB', category: 'periféricos' },
-  '2': { name: 'Monitor 4K', price: 349.99, description: 'Panel IPS 27", 144Hz, HDR', category: 'pantallas' },
-  '3': { name: 'Ratón ergonómico', price: 49.99, description: 'Sensor óptico 16000 DPI, 7 botones', category: 'periféricos' },
-};
+import { getProductById, Product } from '../../data/products.js';
 
 @customElement('product-page')
 export class ProductPage extends LitElement {
   pageController = new PageController(this);
-
-  // CartController: Reactive Controller que encapsula la lógica del carrito
-  // Se suscribe/desuscribe al canal automáticamente via hostConnected/Disconnected
   cart = new CartController(this);
 
-  @state() private _productId = '';
-  @state() private _product: (typeof PRODUCTS)[string] | null = null;
+  @state() private _product: Product | undefined;
   @state() private _justAdded = false;
 
-  static styles = css`
-    :host { display: block; }
+  onPageEnter() {
+    const hash = window.location.hash;
+    const parts = hash.replace('#!/', '').split('/');
+    const id = parts[1] || '1';
+    this._product = getProductById(id);
+    this._justAdded = false;
+  }
 
-    .breadcrumb {
-      color: #666;
-      font-size: 0.85rem;
-      margin-bottom: 1rem;
+  static styles = css`
+    :host {
+      display: block;
+      padding: 2rem;
+      max-width: 900px;
+      margin: 0 auto;
     }
 
-    .breadcrumb button {
+    .back {
       background: none;
       border: none;
       color: #646cff;
       cursor: pointer;
-      font-size: 0.85rem;
+      font-size: 0.9rem;
+      margin-bottom: 1.5rem;
       padding: 0;
     }
 
-    .breadcrumb button:hover { text-decoration: underline; }
-
-    .product-card {
-      padding: 1.5rem;
-      background: #2a2a3e;
-      border-radius: 8px;
-      border: 1px solid #333;
-      transition: border-color 0.2s;
+    .back:hover {
+      text-decoration: underline;
     }
 
-    .product-card.in-cart { border-color: #4caf50; }
+    .product {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      align-items: start;
+    }
 
-    .product-card h2 {
-      color: #c4c4ff;
-      margin: 0 0 0.5rem;
+    @media (max-width: 640px) {
+      .product {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .product img {
+      width: 100%;
+      border-radius: 12px;
+      object-fit: cover;
+      aspect-ratio: 4/3;
+    }
+
+    .details h1 {
+      font-size: 1.8rem;
+      color: #e0e0e0;
+      margin-bottom: 0.25rem;
     }
 
     .category {
-      display: inline-block;
-      padding: 0.15rem 0.5rem;
-      background: #1a1a2e;
-      border-radius: 12px;
-      font-size: 0.75rem;
-      color: #888;
-      margin-bottom: 0.75rem;
+      color: #646cff;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 1rem;
+    }
+
+    .description {
+      color: #aaa;
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
     }
 
     .price {
-      font-size: 1.5rem;
-      color: #4caf50;
+      font-size: 2rem;
       font-weight: bold;
-      margin-bottom: 0.75rem;
+      color: #4caf50;
+      margin-bottom: 1.5rem;
     }
 
-    .description { color: #aaa; line-height: 1.6; }
+    .actions {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
 
-    .actions { margin-top: 1rem; display: flex; gap: 0.5rem; align-items: center; }
-
-    button {
-      padding: 0.4rem 0.8rem;
+    .add-btn {
+      padding: 0.75rem 2rem;
       border: none;
-      border-radius: 4px;
+      border-radius: 8px;
+      font-size: 1rem;
       cursor: pointer;
-      font-size: 0.85rem;
+      transition: all 0.2s;
+      font-weight: 600;
+    }
+
+    .add-btn.default {
+      background: #646cff;
       color: white;
     }
 
-    .btn-cart { background: #4caf50; padding: 0.5rem 1rem; font-size: 0.9rem; }
-    .btn-cart:hover { background: #388e3c; }
-    .btn-nav { background: #646cff; }
-    .btn-nav:hover { background: #535bf2; }
+    .add-btn.default:hover {
+      background: #535bf2;
+    }
 
-    .added-msg { color: #4caf50; font-size: 0.85rem; }
+    .add-btn.added {
+      background: #4caf50;
+      color: white;
+    }
 
-    .nav-buttons { margin-top: 1.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .in-cart-info {
+      color: #4caf50;
+      font-size: 0.9rem;
+    }
 
     .not-found {
-      padding: 2rem;
       text-align: center;
-      color: #f44336;
+      padding: 3rem;
+      color: #888;
+    }
+
+    .not-found h2 {
+      color: #e63946;
+      margin-bottom: 0.5rem;
     }
   `;
 
-  onPageEnter() {
-    this._readParams();
-    this._justAdded = false;
+  render() {
+    return html`
+      <button class="back" @click=${() => navigate('home')}>
+        &larr; Volver al catálogo
+      </button>
+
+      ${when(this._product,
+        () => this._renderProduct(),
+        () => html`
+          <div class="not-found">
+            <h2>Producto no encontrado</h2>
+            <p>El producto que buscas no existe.</p>
+          </div>
+        `
+      )}
+    `;
   }
 
-  private _readParams() {
-    const hash = window.location.hash;
-    const match = hash.match(/\/product\/(\w+)/);
-    if (match) {
-      this._productId = match[1];
-      this._product = PRODUCTS[this._productId] || null;
-    }
+  private _renderProduct() {
+    const p = this._product!;
+    const inCart = this.cart.items.some(i => i.id === p.id);
+    const cartItem = this.cart.items.find(i => i.id === p.id);
+
+    return html`
+      <div class="product">
+        <img src=${p.image} alt=${p.name} />
+        <div class="details">
+          <div class="category">${p.category}</div>
+          <h1>${p.name}</h1>
+          <p class="description">${p.description}</p>
+          <div class="price">${p.price.toFixed(2)} &euro;</div>
+          <div class="actions">
+            <button
+              class=${classMap({
+                'add-btn': true,
+                'default': !this._justAdded,
+                'added': this._justAdded,
+              })}
+              @click=${this._addToCart}
+            >
+              ${this._justAdded ? 'Añadido' : 'Añadir al carrito'}
+            </button>
+            ${when(inCart, () => html`
+              <span class="in-cart-info">
+                ${cartItem!.quantity} en el carrito
+              </span>
+            `)}
+          </div>
+        </div>
+      </div>
+    `;
   }
 
   private _addToCart() {
     if (!this._product) return;
     this.cart.add({
-      id: this._productId,
+      id: this._product.id,
       name: this._product.name,
       price: this._product.price,
+      image: this._product.image,
     });
     this._justAdded = true;
-    setTimeout(() => { this._justAdded = false; }, 2000);
-  }
-
-  render() {
-    // when() — directiva condicional lazy (rama 08)
-    return when(
-      this._product,
-      () => this._renderProduct(),
-      () => this._renderNotFound()
-    );
-  }
-
-  private _renderNotFound() {
-    return html`
-      <page-layout pageTitle="Producto no encontrado">
-        <div class="not-found">
-          <p>ID: ${this._productId}</p>
-          <button class="btn-nav" @click=${() => this.pageController.navigate('home')}>
-            Volver a Home
-          </button>
-        </div>
-      </page-layout>
-    `;
-  }
-
-  private _renderProduct() {
-    // classMap() — clases condicionales (rama 08)
-    const isInCart = this.cart.items.some(item => item.id === this._productId);
-    const cardClasses = classMap({
-      'product-card': true,
-      'in-cart': isInCart,
-    });
-
-    return html`
-      <page-layout pageTitle="Producto ${this._productId}">
-        <span slot="subtitle">${this._product!.category}</span>
-
-        <div class="breadcrumb">
-          <button @click=${() => this.pageController.navigate('home')}>Home</button>
-          → Producto ${this._productId}
-        </div>
-
-        <div class=${cardClasses}>
-          <h2>${this._product!.name}</h2>
-          <span class="category">${this._product!.category}</span>
-          <div class="price">${this._product!.price.toFixed(2)} &euro;</div>
-          <p class="description">${this._product!.description}</p>
-
-          <div class="actions">
-            <button class="btn-cart" @click=${this._addToCart}>
-              Añadir al carrito
-            </button>
-            ${when(this._justAdded, () => html`
-              <span class="added-msg">Añadido</span>
-            `)}
-            ${when(isInCart, () => html`
-              <button class="btn-nav"
-                @click=${() => this.pageController.navigate('cart')}>
-                Ver carrito (${this.cart.count})
-              </button>
-            `)}
-          </div>
-        </div>
-
-        <div class="nav-buttons">
-          ${Object.keys(PRODUCTS)
-            .filter(id => id !== this._productId)
-            .map(id => html`
-              <button class="btn-nav"
-                @click=${() => this.pageController.navigate('product', { id })}>
-                ${PRODUCTS[id].name}
-              </button>
-            `)}
-        </div>
-      </page-layout>
-    `;
+    setTimeout(() => { this._justAdded = false; }, 1500);
   }
 }
