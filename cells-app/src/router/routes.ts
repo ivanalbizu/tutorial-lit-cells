@@ -16,6 +16,14 @@ export const routes = [
     },
   },
   {
+    path: '/wishlist',
+    name: 'wishlist',
+    component: 'wishlist-page',
+    action: async () => {
+      await import('../pages/wishlist/wishlist-page.js');
+    },
+  },
+  {
     path: '/cart',
     name: 'cart',
     component: 'cart-page',
