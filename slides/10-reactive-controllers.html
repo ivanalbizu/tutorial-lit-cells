@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>10 — Reactive Controllers | Lit + Cells</title>
+  <link rel="stylesheet" href="/node_modules/reveal.js/dist/reveal.css" />
+  <link rel="stylesheet" href="/node_modules/reveal.js/dist/theme/night.css" />
+  <link rel="stylesheet" href="/node_modules/reveal.js/plugin/highlight/monokai.css" />
+  <link rel="stylesheet" href="/css/custom.css" />
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- ============================== -->
+      <!-- INTRO                          -->
+      <!-- ============================== -->
+      <section data-audio="audio/10/00-intro.mp3">
+        <h1>Reactive Controllers</h1>
+        <h3>Paso 10 — Lógica reutilizable en Lit</h3>
+        <p class="subtitle">Encapsula comportamiento fuera del componente</p>
+      </section>
+
+<!-- ESCENA 1 — ¿Qué es?            ======== -->
+      <section>
+        <section data-audio="audio/10/01-escena.mp3">
+          <h2>¿Qué es un Reactive Controller?</h2>
+          <p class="scene-desc">Una clase que participa en el ciclo de vida del host</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers>
+import { ReactiveController, ReactiveControllerHost } from 'lit';
+
+class MiController implements ReactiveController {
+  private host: ReactiveControllerHost;
+
+  constructor(host: ReactiveControllerHost) {
+    this.host = host;
+    host.addController(this); // registro obligatorio
+  }
+
+  hostConnected()    { /* host se conectó al DOM   */ }
+  hostDisconnected() { /* host se desconectó del DOM */ }
+  hostUpdate()       { /* antes de cada actualización */ }
+  hostUpdated()      { /* después de cada actualización */ }
+}
+          </code></pre>
+          <p class="note fragment" data-fragment-index="1" data-fragment-time="6">
+            El componente que lo usa se llama <strong>host</strong>
+          </p>
+        </section>
+
+        <section data-audio="audio/10/01b-escena.mp3">
+          <h2>Interfaz ReactiveController</h2>
+          <p class="scene-desc">Cuatro hooks — todos opcionales</p>
+          <div class="callout fragment" data-fragment-index="1" data-fragment-time="2">
+            <p><strong>hostConnected</strong> — el host se conectó al DOM. Inicia recursos: timers, listeners.</p>
+          </div>
+          <div class="callout fragment" data-fragment-index="2" data-fragment-time="6">
+            <p><strong>hostDisconnected</strong> — el host se desconectó. Limpia recursos obligatoriamente.</p>
+          </div>
+          <div class="callout fragment" data-fragment-index="3" data-fragment-time="8">
+            <p><strong>hostUpdate</strong> — antes de cada render del host.</p>
+          </div>
+          <div class="callout fragment" data-fragment-index="4" data-fragment-time="11">
+            <p><strong>hostUpdated</strong> — después de cada render del host.</p>
+          </div>
+          <div class="callout warning fragment" data-fragment-index="5" data-fragment-time="15">
+            <p><code>host.addController(this)</code> en el constructor es <strong>obligatorio</strong> para activar los hooks.</p>
+          </div>
+        </section>
+      </section>
+
+<!-- ESCENA 2 — ClockController     ======== -->
+      <section>
+        <section data-audio="audio/10/02-escena.mp3">
+          <h2>ClockController</h2>
+          <p class="scene-desc">setInterval + limpieza automática</p>
+          <pre><code class="language-typescript large" data-trim data-line-numbers>
+import { ReactiveControllerHost } from 'lit';
+
+export class ClockController {
+  private host: ReactiveControllerHost;
+  private _intervalId: number | undefined;
+  value = new Date();
+
+  constructor(host: ReactiveControllerHost) {
+    this.host = host;
+    host.addController(this);
+  }
+
+  hostConnected() {
+    this._intervalId = window.setInterval(() => {
+      this.value = new Date();
+      this.host.requestUpdate();
+    }, 1000);
+  }
+
+  hostDisconnected() {
+    clearInterval(this._intervalId);
+    this._intervalId = undefined;
+  }
+}
+          </code></pre>
+        </section>
+
+        <section data-audio="audio/10/02b-escena.mp3">
+          <h2>ClockController — Dos claves</h2>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"1,4,6"},{"time":15,"lines":"8-11"}]'>
+  hostConnected() {
+    this._intervalId = window.setInterval(() => {
+      this.value = new Date();
+      this.host.requestUpdate(); // notifica al host
+    }, 1000);
+  }
+
+  hostDisconnected() {
+    clearInterval(this._intervalId); // limpieza obligatoria
+    this._intervalId = undefined;
+  }
+          </code></pre>
+          <div class="callout fragment" data-fragment-index="1" data-fragment-time="3">
+            <p><code>host.requestUpdate()</code> — el host no detecta cambios internos del controller automáticamente. Hay que notificarlo.</p>
+          </div>
+          <div class="callout warning fragment" data-fragment-index="2" data-fragment-time="15">
+            <p>Sin <code>clearInterval</code> en <code>hostDisconnected</code>, el timer sigue corriendo aunque el componente ya no exista: <strong>fuga de memoria</strong>.</p>
+          </div>
+        </section>
+      </section>
+
+<!-- ESCENA 3 — MouseController     ======== -->
+      <section data-audio="audio/10/03-escena.mp3">
+        <h2>MouseController</h2>
+        <p class="scene-desc">Listener global con limpieza correcta</p>
+        <pre><code class="language-typescript large" data-trim data-line-numbers
+          data-highlight-steps='[{"time":0,"lines":""},{"time":3,"lines":"18-20"},{"time":5,"lines":"22-24"},{"time":7,"lines":"8-11"}]'>
+import { ReactiveControllerHost } from 'lit';
+
+export class MouseController {
+  private host: ReactiveControllerHost;
+  position = { x: 0, y: 0 };
+
+  // Arrow function guardada como propiedad para poder eliminarla
+  private _onMouseMove = (e: MouseEvent) => {
+    this.position = { x: e.clientX, y: e.clientY };
+    this.host.requestUpdate();
+  };
+
+  constructor(host: ReactiveControllerHost) {
+    this.host = host;
+    host.addController(this);
+  }
+
+  hostConnected() {
+    window.addEventListener('mousemove', this._onMouseMove);
+  }
+
+  hostDisconnected() {
+    window.removeEventListener('mousemove', this._onMouseMove);
+  }
+}
+        </code></pre>
+        <p class="note fragment" data-fragment-time="11">
+          La arrow function en propiedad garantiza la <strong>misma referencia</strong> en add y remove
+        </p>
+      </section>
+
+<!-- ESCENA 4 — FetchController     ======== -->
+      <section>
+        <section data-audio="audio/10/04-escena.mp3">
+          <h2>FetchController&lt;T&gt;</h2>
+          <p class="scene-desc">Fetch con loading / error / abort</p>
+          <pre><code class="language-typescript large" data-trim data-line-numbers
+           data-highlight-steps='[{"time":0,"lines":""},{"time":1,"lines":"3,21"},{"time":5,"lines":"8-10"},{"time":9,"lines":"6"},{"time":14,"lines":"18-20"}]'>
+import { ReactiveControllerHost } from 'lit';
+
+export class FetchController&lt;T&gt; {
+  private host: ReactiveControllerHost;
+  private _url: string;
+  private _abortController: AbortController | undefined;
+
+  loading = false;
+  error: string | undefined;
+  data: T | undefined;
+
+  constructor(host: ReactiveControllerHost, url: string) {
+    this.host = host;
+    this._url = url;
+    host.addController(this);
+  }
+
+  hostDisconnected() {
+    this._abortController?.abort(); // cancela petición en vuelo
+  }
+}
+          </code></pre>
+        </section>
+
+        <section data-audio="audio/10/04b-escena.mp3">
+          <h2>FetchController — método fetch()</h2>
+          <pre><code class="language-typescript large" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":1,"lines":"2-3"},{"time":4,"lines":"5-7"},{"time":10,"lines":"19-22"},{"time":15,"lines":"16-18"}]'>
+  async fetch() {
+    this._abortController?.abort();
+    this._abortController = new AbortController();
+
+    this.loading = true;
+    this.error = undefined;
+    this.host.requestUpdate();
+
+    try {
+      const response = await fetch(this._url, {
+        signal: this._abortController.signal,
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      this.data = await response.json() as T;
+    } catch (err) {
+      if ((err as Error).name !== 'AbortError') {
+        this.error = (err as Error).message;
+      }
+    } finally {
+      this.loading = false;
+      this.host.requestUpdate();
+    }
+  }
+          </code></pre>
+          <div class="callout fragment" data-fragment-time="14">
+            <p><code>AbortError</code> se ignora: la cancelación fue intencional, no un error real.</p>
+          </div>
+        </section>
+      </section>
+
+<!-- ESCENA 5 — Uso en componente   ======== -->
+      <section>
+        <section data-audio="audio/10/05-escena.mp3">
+          <h2>Uso en un componente</h2>
+          <p class="scene-desc">Controllers como class fields</p>
+          <pre><code class="language-typescript large" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":"dim"},{"time":2,"lines":"3-5"},{"time":7,"lines":"13-18"}]'>
+import { LitElement, html } from 'lit';
+import { customElement } from 'lit/decorators.js';
+import { ClockController } from '../controllers/clock-controller.js';
+import { MouseController } from '../controllers/mouse-controller.js';
+import { FetchController } from '../controllers/fetch-controller.js';
+
+interface Todo { id: number; title: string; completed: boolean; }
+
+@customElement('my-controller-demo')
+export class MyControllerDemo extends LitElement {
+
+  // Tres controllers — Lit los registra al instanciarlos
+  clock   = new ClockController(this);
+  mouse   = new MouseController(this);
+  fetcher = new FetchController&lt;Todo&gt;(
+    this,
+    'https://jsonplaceholder.typicode.com/todos/1'
+  );
+
+  render() { /* ... */ } // ver siguiente slide
+}
+          </code></pre>
+          <p class="note fragment" data-fragment-time="6">
+            Cada constructor llama <code>host.addController(this)</code> — el registro es automático
+          </p>
+        </section>
+
+        <section data-audio="audio/10/05c-escena.mp3">
+          <h2>Class fields vs constructor</h2>
+          <p class="scene-desc">Dos formas de instanciar — una es idiomática en Lit</p>
+          <pre><code class="language-typescript large" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":"dim"},{"time":2,"lines":"3-4"},{"time":8,"lines":"8-9"},{"time":13,"lines":"14-17"}]'>
+// ✗ En el constructor — verboso, innecesario
+export class MyDemo extends LitElement {
+  clock: ClockController;
+  mouse: MouseController;
+
+  constructor() {
+    super();
+    this.clock = new ClockController(this);
+    this.mouse = new MouseController(this);
+  }
+}
+
+// ✓ Como class fields — forma idiomática en Lit
+export class MyDemo extends LitElement {
+  clock = new ClockController(this);
+  mouse = new MouseController(this);
+}
+          </code></pre>
+          <div class="callout fragment" data-fragment-time="14">
+            <p>Cada controller llama <code>host.addController(this)</code> en su constructor.<br/>
+            El registro ocurre automáticamente al instanciar el class field — sin código extra.</p>
+          </div>
+        </section>
+
+        <section data-audio="audio/10/05b-escena.mp3">
+          <h2>Render con los tres controllers</h2>
+          <pre><code class="language-typescript large" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":"dim"},{"time":0.5,"lines":"1,21"},{"time":2.5,"lines":"1,21,5"},{"time":4,"lines":"1,21,5,10"},{"time":5,"lines":"1,21,5,10,15"},{"time":6,"lines":"1,21,5,10,15-18"}]'>
+  render() {
+    return html`
+      &lt;section&gt;
+        &lt;h2&gt;ClockController&lt;/h2&gt;
+        &lt;p&gt;Hora: ${this.clock.value.toLocaleTimeString()}&lt;/p&gt;
+      &lt;/section&gt;
+
+      &lt;section&gt;
+        &lt;h2&gt;MouseController&lt;/h2&gt;
+        &lt;p&gt;X: ${this.mouse.position.x} — Y: ${this.mouse.position.y}&lt;/p&gt;
+      &lt;/section&gt;
+
+      &lt;section&gt;
+        &lt;h2&gt;FetchController&lt;/h2&gt;
+        &lt;button @click=${() => this.fetcher.fetch()}&gt;Cargar dato&lt;/button&gt;
+        ${this.fetcher.loading ? html`&lt;p&gt;Cargando...&lt;/p&gt;` : ''}
+        ${this.fetcher.error  ? html`&lt;p&gt;Error: ${this.fetcher.error}&lt;/p&gt;` : ''}
+        ${this.fetcher.data   ? html`&lt;p&gt;${this.fetcher.data.title}&lt;/p&gt;` : ''}
+      &lt;/section&gt;
+    `;
+  }
+          </code></pre>
+          <div class="callout fragment" data-fragment-time="2">
+            <p>Se consumen como propiedades normales: <code>this.clock.value</code>, <code>this.mouse.position</code>, <code>this.fetcher.data</code>. Sin código extra para la reactividad.</p>
+          </div>
+        </section>
+      </section>
+
+      <!-- ============================== -->
+      <!-- RESUMEN                        -->
+      <!-- ============================== -->
+      <section data-audio="audio/10/99-resumen.mp3">
+        <h2>Resumen</h2>
+        <div class="file-tree">
+          <pre>
+ReactiveController
+  constructor(host)     → host.addController(this)
+  hostConnected()       → inicia recursos
+  hostDisconnected()    → limpia recursos (obligatorio)
+  host.requestUpdate()  → notifica cambios al host
+
+Uso en componente:
+  clock   = new ClockController(this)
+  mouse   = new MouseController(this)
+  fetcher = new FetchController&lt;T&gt;(this, url)
+          </pre>
+        </div>
+        <p class="note fragment" data-fragment-time="26" style="margin-top:1em;">
+          Siguiente paso: <strong>Decoradores avanzados — @query, @queryAll, @queryAsync</strong>
+        </p>
+      </section>
+
+    </div>
+  </div>
+
+  <script type="module" src="/js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>07 — Estilos encapsulados | Lit + Cells</title>
+  <link rel="stylesheet" href="/node_modules/reveal.js/dist/reveal.css" />
+  <link rel="stylesheet" href="/node_modules/reveal.js/dist/theme/night.css" />
+  <link rel="stylesheet" href="/node_modules/reveal.js/plugin/highlight/monokai.css" />
+  <link rel="stylesheet" href="/css/custom.css" />
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- ============================== -->
+      <!-- INTRO                          -->
+      <!-- ============================== -->
+      <section data-audio="audio/07/00-intro.mp3">
+        <h1>Lit + Cells</h1>
+        <h3>Paso 7 — Estilos encapsulados con Shadow DOM</h3>
+        <p class="subtitle">static styles · :host · ::slotted · ::part · custom properties</p>
+      </section>
+
+<!-- ESCENA 1 — static styles        ======== -->
+      <section>
+        <section data-audio="audio/07/01-static-styles.mp3">
+          <h2>static styles</h2>
+          <p class="scene-desc">Estilos encapsulados en Shadow DOM</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+             data-highlight-steps='[{"time":0,"lines":""},{"time":1,"lines":"14-22"},{"time":4,"lines":"14-22,1"}]'>
+import { LitElement, html, css } from 'lit';
+import { customElement } from 'lit/decorators.js';
+
+@customElement('my-card')
+export class MyCard extends LitElement {
+  render() {
+    return html`
+      &lt;div class="card"&gt;
+        &lt;slot&gt;&lt;/slot&gt;
+      &lt;/div&gt;
+    `;
+  }
+
+  static styles = css`
+    .card {
+      border: 1px solid #444;
+      border-radius: 8px;
+      padding: 1.5rem;
+      background: #1e1e1e;
+      color: #fff;
+    }
+  `;
+}
+          </code></pre>
+        </section>
+
+        <section data-audio="audio/07/01b-static-styles.mp3">
+          <h2>static styles</h2>
+          <p class="scene-desc">¿Por qué encapsulados?</p>
+          <div class="callout fragment" data-fragment-index="1" data-fragment-time="0.5">
+            <p>Los estilos viven dentro del Shadow DOM.<br/>
+            La clase <code>.card</code> solo existe <strong>dentro de este componente</strong>.</p>
+          </div>
+          <div class="callout fragment" data-fragment-index="2" data-fragment-time="8">
+            <p>Si en tu página tienes otra clase <code>.card</code> global,<br/>
+            <strong>no habrá ningún conflicto</strong>.</p>
+          </div>
+          <p class="note fragment" data-fragment-index="3" data-fragment-time="13">
+            Usa el tagged template <code>css</code> importado desde <code>'lit'</code>
+          </p>
+        </section>
+      </section>
+
+<!-- ESCENA 2 — Array de estilos     ======== -->
+      <section>
+        <section data-audio="audio/07/02-array-estilos.mp3">
+          <h2>Array de estilos</h2>
+          <p class="scene-desc">Compartir CSS base entre componentes</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers>
+// src/shared-styles.ts
+import { css } from 'lit';
+
+export const baseStyles = css`
+  * {
+    box-sizing: border-box;
+  }
+  :host {
+    display: block;
+  }
+`;
+          </code></pre>
+        </section>
+
+        <section data-audio="audio/07/02b-array-estilos.mp3">
+          <h2>Array de estilos</h2>
+          <p class="scene-desc">Importar y combinar en my-card</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":1,"lines":"1,5"},{"time":5,"lines":"1,5-14"}]'>
+import { baseStyles } from './shared-styles.js';
+
+// En la clase:
+static styles = [
+  baseStyles,
+  css`
+    .card {
+      border: 1px solid #444;
+      border-radius: 8px;
+      padding: 1.5rem;
+      background: #1e1e1e;
+      color: #fff;
+    }
+  `
+];
+          </code></pre>
+          <p class="note fragment" data-fragment-time="7">
+            Cada componente sigue aislado, pero reutiliza las reglas comunes sin duplicar código
+          </p>
+        </section>
+      </section>
+
+<!-- ESCENA 3 — :host y variantes    ======== -->
+      <section>
+        <section data-audio="audio/07/03-host.mp3">
+          <h2>:host</h2>
+          <p class="scene-desc">El propio elemento como selector</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":"dim"},{"time":12,"lines":"2"}]'>
+// En la clase, propiedad con reflect:
+@property({ type: String, reflect: true })
+variant: 'default' | 'primary' | 'danger' = 'default';
+          </code></pre>
+          <pre><code class="language-css" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":"dim"},{"time":0.5,"lines":"1"},{"time":5,"lines":"1,5"},{"time":6,"lines":"1,5,10"},{"time":7,"lines":"1,5,10,15"}]'>
+:host {
+  display: block;
+}
+
+:host([variant="primary"]) .card {
+  border-color: #4a9eff;
+  background: #0d2a4a;
+}
+
+:host([variant="danger"]) .card {
+  border-color: #ff4a4a;
+  background: #4a0d0d;
+}
+
+:host(:hover) .card {
+  border-color: #888;
+}
+          </code></pre>
+        </section>
+
+        <section data-audio="audio/07/03b-host.mp3">
+          <h2>:host y reflect</h2>
+          <p class="scene-desc">Cómo funciona la sincronización</p>
+          <div class="callout fragment" data-fragment-index="1" data-fragment-time="1">
+            <p><code>reflect: true</code> sincroniza el valor de la propiedad<br/>
+            como atributo en el HTML del elemento.</p>
+          </div>
+          <div class="callout fragment" data-fragment-index="2" data-fragment-time="6">
+            <p>Sin <code>reflect</code>, el atributo <code>variant</code> no existe en el DOM<br/>
+            y <code>:host([variant="primary"])</code> nunca coincide.</p>
+          </div>
+        </section>
+      </section>
+
+<!-- ESCENA 4 — ::slotted()          ======== -->
+      <section>
+        <section data-audio="audio/07/04-slotted.mp3">
+          <h2>::slotted()</h2>
+          <p class="scene-desc">Estilizar contenido proyectado</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"3-10"}]'>
+render() {
+  return html`
+    &lt;div class="card"&gt;
+      &lt;div class="card-header"&gt;
+        &lt;slot name="header"&gt;&lt;/slot&gt;
+      &lt;/div&gt;
+      &lt;div class="card-body"&gt;
+        &lt;slot&gt;&lt;/slot&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  `;
+}
+          </code></pre>
+          <pre><code class="language-css" data-trim data-line-numbers>
+::slotted(h2) {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #4a9eff;
+}
+
+::slotted(p) {
+  color: #ccc;
+  line-height: 1.6;
+}
+          </code></pre>
+        </section>
+
+        <section data-audio="audio/07/04b-slotted.mp3">
+          <h2>::slotted() — limitación</h2>
+          <p class="scene-desc">Solo hijos directos del slot</p>
+          <div class="callout warning fragment" data-fragment-time="7">
+            <p><code>::slotted(selector)</code> solo funciona con <strong>hijos directos</strong>.<br/>
+            No llega a descendientes más profundos.</p>
+          </div>
+          <div class="callout fragment" data-fragment-time="0.5">
+            <p>Si proyectas un <code>&lt;div&gt;</code> que contiene un <code>&lt;p&gt;</code>,<br/>
+            <code>::slotted(p)</code> <strong>no</strong> alcanzará ese párrafo interno.</p>
+          </div>
+          <p class="note fragment" data-fragment-time="15">
+            Para estilos más profundos, usa CSS custom properties
+          </p>
+        </section>
+      </section>
+
+<!-- ESCENA 5 — ::part()             ======== -->
+      <section>
+        <section data-audio="audio/07/05-part.mp3">
+          <h2>::part()</h2>
+          <p class="scene-desc">Exponer partes internas para el exterior</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"3,6"}]'>
+return html`
+  &lt;div class="card" part="card"&gt;
+    &lt;div class="card-header" part="header"&gt;
+      &lt;slot name="header"&gt;&lt;/slot&gt;
+    &lt;/div&gt;
+    &lt;div class="card-body" part="body"&gt;
+      &lt;slot&gt;&lt;/slot&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+`;
+          </code></pre>
+        </section>
+
+        <section data-audio="audio/07/05b-part.mp3">
+          <h2>::part() — uso desde fuera</h2>
+          <p class="scene-desc">El usuario del componente estiliza las partes</p>
+          <pre><code class="language-css" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":3,"lines":"1,7"}]'>
+my-card::part(header) {
+  background: #2a1a4a;
+  padding: 0.5rem 1.5rem;
+  border-radius: 8px 8px 0 0;
+}
+
+my-card::part(body) {
+  padding: 1.5rem;
+}
+          </code></pre>
+          <div class="callout fragment" data-fragment-time="8">
+            <p>El autor del componente decide qué partes son públicas.<br/>
+            El usuario las personaliza <strong>sin romper la estructura interna</strong>.</p>
+          </div>
+        </section>
+      </section>
+
+<!-- ESCENA 6 — CSS custom props     ======== -->
+      <section>
+        <section data-audio="audio/07/06-custom-props.mp3">
+          <h2>CSS custom properties</h2>
+          <p class="scene-desc">API de theming que atraviesa el Shadow DOM</p>
+          <pre><code class="language-css" data-trim data-line-numbers>
+/* Dentro del componente my-card */
+.card {
+  border: 1px solid var(--card-border-color, #444);
+  border-radius: var(--card-radius, 8px);
+  padding: var(--card-padding, 1.5rem);
+  background: var(--card-bg, #1e1e1e);
+  color: var(--card-color, #fff);
+}
+          </code></pre>
+          <div class="callout fragment" data-fragment-time="5">
+            <p><code>var(--nombre, valor-default)</code><br/>
+            Si la variable no está definida, se usa el valor por defecto.</p>
+          </div>
+        </section>
+
+        <section data-audio="audio/07/06b-custom-props.mp3">
+          <h2>CSS custom properties</h2>
+          <p class="scene-desc">El usuario aplica el tema desde fuera</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"15-20"}]'>
+@customElement('my-theme-demo')
+export class MyThemeDemo extends LitElement {
+  render() {
+    return html`
+      &lt;div class="demo"&gt;
+        &lt;my-card&gt;
+          &lt;h2 slot="header"&gt;Tarjeta temática&lt;/h2&gt;
+          &lt;p&gt;Esta tarjeta usa custom properties para su tema.&lt;/p&gt;
+        &lt;/my-card&gt;
+      &lt;/div&gt;
+    `;
+  }
+
+  static styles = css`
+    .demo {
+      --card-bg: #1a1a2e;
+      --card-border-color: #e94560;
+      --card-radius: 16px;
+      --card-color: #eee;
+    }
+  `;
+}
+          </code></pre>
+          <p class="note fragment" data-fragment-time="11">
+            Las variables CSS <strong>atraviesan el Shadow DOM de forma nativa</strong>
+          </p>
+        </section>
+      </section>
+
+      <!-- ============================== -->
+      <!-- RESUMEN                        -->
+      <!-- ============================== -->
+      <section data-audio="audio/07/99-resumen.mp3">
+        <h2>Resumen</h2>
+        <div class="file-tree">
+          <pre>
+  static styles = css`...`     Encapsulados en Shadow DOM
+  [baseStyles, css`...`]       Reutilizar CSS base
+  :host                        El propio elemento
+  :host([attr])                Variantes (requiere reflect: true)
+  ::slotted(selector)          Hijos directos proyectados
+  part="nombre"                Exponer partes internas
+  my-card::part(nombre)        Estilizar desde fuera
+  var(--prop, default)         API de theming nativa
+          </pre>
+        </div>
+        <p class="note fragment" style="margin-top:1em;" data-fragment-time="2">
+          Encapsulación por defecto — apertura controlada con <code>::part</code> y custom properties
+        </p>
+        <p class="note fragment" data-fragment-time="12">
+          Siguiente paso: <strong>Directivas de Lit</strong>
+        </p>
+      </section>
+
+    </div>
+  </div>
+
+  <script type="module" src="/js/main.js"></script>
+</body>
+</html>

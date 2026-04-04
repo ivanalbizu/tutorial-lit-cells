@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>05 — Eventos y comunicación | Lit + Cells</title>
+  <link rel="stylesheet" href="/node_modules/reveal.js/dist/reveal.css" />
+  <link rel="stylesheet" href="/node_modules/reveal.js/dist/theme/night.css" />
+  <link rel="stylesheet" href="/node_modules/reveal.js/plugin/highlight/monokai.css" />
+  <link rel="stylesheet" href="/css/custom.css" />
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- ============================== -->
+      <!-- INTRO                          -->
+      <!-- ============================== -->
+      <section data-audio="audio/05/00-intro.mp3">
+        <h1>Lit + Cells</h1>
+        <h3>Paso 5 — Eventos y comunicación</h3>
+        <p class="subtitle">CustomEvent · dispatchEvent · padre ↔ hijo</p>
+      </section>
+
+<!-- ESCENA 1 — Patrón               ======== -->
+      <section data-audio="audio/05/01-escena.mp3">
+        <h2>El patrón de comunicación</h2>
+        <p class="scene-desc">Flujo de datos predecible</p>
+        <div style="display:flex; flex-direction:column; gap:1.5rem; align-items:center; margin-top:1rem;">
+          <div class="callout" style="width:80%; text-align:center;">
+            <p>⬇ <strong>Padre → Hijo:</strong> propiedades (<code>.prop=${valor}</code>)</p>
+          </div>
+          <div class="callout" style="width:80%; text-align:center; border-color:#f0a500;">
+            <p>⬆ <strong>Hijo → Padre:</strong> eventos (<code>dispatchEvent</code>)</p>
+          </div>
+        </div>
+        <p class="note fragment" data-fragment-time="14" style="margin-top:1.5rem;">
+          El padre escucha los eventos, actualiza su estado y le pasa los nuevos valores al hijo como propiedades
+        </p>
+      </section>
+
+<!-- ESCENA 2 — Anatomía CustomEvent ======== -->
+      <section data-audio="audio/05/02-escena.mp3">
+        <h2>Anatomía de un CustomEvent</h2>
+        <p class="scene-desc">Las tres propiedades esenciales</p>
+        <pre><code class="language-typescript" data-trim data-line-numbers
+          data-highlight-steps='[{"time":0,"lines":""},{"time":3,"lines":"2"},{"time":9,"lines":"3"},{"time":14,"lines":"4"}]'>
+this.dispatchEvent(new CustomEvent('rating-changed', {
+  detail:   { rating: 4 },
+  bubbles:  true,
+  composed: true,
+}));
+        </code></pre>
+        <ul style="margin-top:1rem;">
+          <li class="fragment" data-fragment-time="3.5"><code>detail</code> — el payload del evento; puede ser cualquier objeto</li>
+          <li class="fragment" data-fragment-time="9.5"><code>bubbles: true</code> — el evento sube por el árbol DOM hasta el documento</li>
+          <li class="fragment" data-fragment-time="14.5"><code>composed: true</code> — el evento <strong>cruza el Shadow DOM</strong></li>
+        </ul>
+        <div class="callout warning fragment" data-fragment-time="19">
+          <p>Sin <code>composed: true</code>, el evento queda atrapado dentro de la shadow root
+          y el componente padre nunca lo recibe.</p>
+        </div>
+      </section>
+
+      <!-- ============================== -->
+      <!-- ESCENA 3 — my-rating base      -->
+      <!-- ============================== -->
+      <section>
+        <section data-audio="audio/05/03-escena.mp3">
+          <h2>my-rating.ts</h2>
+          <p class="scene-desc">Componente hijo — propiedades de entrada</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":5,"lines":"4-5"},{"time":8,"lines":"7-8"}]'>
+@customElement('my-rating')
+export class MyRating extends LitElement {
+
+  @property({ type: Number })
+  value = 0;
+
+  @property({ type: Number })
+  max = 5;
+
+}
+          </code></pre>
+          <p class="note fragment" data-fragment-time="11">
+            Ambas propiedades vienen del exterior — por eso son <code>@property</code>
+          </p>
+        </section>
+
+<!-- ESCENA 4 — dispatchEvent        ======== -->
+        <section data-audio="audio/05/04-escena.mp3">
+          <h2>my-rating.ts</h2>
+          <p class="scene-desc">Emitir el evento al seleccionar una estrella</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":4,"lines":"2-6"}]'>
+  private _select(rating: number) {
+    this.dispatchEvent(new CustomEvent('rating-changed', {
+      detail: { rating },
+      bubbles: true,
+      composed: true,
+    }));
+  }
+          </code></pre>
+          <div class="callout fragment" data-fragment-time="10">
+            <p>Convención: nombres de eventos en <strong>kebab-case</strong>
+            — <code>rating-changed</code>, <code>item-selected</code>...</p>
+          </div>
+          <p class="note fragment" data-fragment-time="13">
+            El padre escuchará <code>@rating-changed</code> en su template,
+            igual que un <code>@click</code> nativo
+          </p>
+        </section>
+
+        <!-- ============================== -->
+        <!-- ESCENA 5 — render my-rating    -->
+        <!-- ============================== -->
+        <section data-audio="audio/05/05-escena.mp3">
+          <h2>my-rating.ts</h2>
+          <p class="scene-desc">Render — botones de estrellas</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"3,10"},{"time":4,"lines":"3,10,7"},{"time":11,"lines":"3,10,7,5"},{"time":16,"lines":"3,10,7,5,6"}]'>
+  render() {
+    return html`
+      ${Array.from({ length: this.max }, (_, i) =&gt; html`
+        &lt;button
+          @click=${() =&gt; this._select(i + 1)}
+          aria-label="Valorar con ${i + 1} estrellas"&gt;
+          ${i &lt; this.value ? '★' : '☆'}
+        &lt;/button&gt;
+      `)}
+    `;
+  }
+          </code></pre>
+          <p class="note fragment" data-fragment-time="18">
+            <code>aria-label</code> hace el componente accesible para lectores de pantalla
+          </p>
+        </section>
+      </section>
+
+      <!-- ============================== -->
+      <!-- ESCENA 6 — my-review estado    -->
+      <!-- ============================== -->
+      <section>
+        <section data-audio="audio/05/06-escena.mp3">
+          <h2>my-review.ts</h2>
+          <p class="scene-desc">Componente padre — gestiona el estado</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":3,"lines":"4-5"},{"time":5,"lines":"7-8"},{"time":12,"lines":"10-11"}]'>
+@customElement('my-review')
+export class MyReview extends LitElement {
+
+  @state()
+  private _reviews: Review[] = [];
+
+  @state()
+  private _currentRating = 0;
+
+  @state()
+  private _inputText = '';
+
+}
+          </code></pre>
+          <p class="note fragment" data-fragment-time="6">
+            <code>_currentRating</code> almacena la valoración que el usuario
+            está eligiendo <em>antes</em> de enviar el formulario
+          </p>
+        </section>
+
+<!-- ESCENA 7 — handler del evento   ======== -->
+        <section data-audio="audio/05/07-escena.mp3">
+          <h2>my-review.ts</h2>
+          <p class="scene-desc">Handler que escucha el evento del hijo</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"1-3"},{"time":8,"lines":"5-13"}]'>
+private _onRatingChanged(e: CustomEvent&lt;{ rating: number }&gt;) {
+  this._currentRating = e.detail.rating;
+}
+
+private _submit() {
+  if (!this._currentRating) return;
+  this._reviews = [
+    ...this._reviews,
+    { id: Date.now(), rating: this._currentRating, text: this._inputText },
+  ];
+  this._currentRating = 0;
+  this._inputText = '';
+}
+          </code></pre>
+          <div class="callout fragment" data-fragment-time="9">
+            <p>El <code>CustomEvent</code> se tipa con la forma del <code>detail</code>:
+            <code>CustomEvent&lt;&#123; rating: number &#125;&gt;</code><br/>
+            TypeScript garantiza que accedemos correctamente a <code>e.detail.rating</code>.</p>
+          </div>
+        </section>
+
+<!-- ESCENA 8 — render padre         ======== -->
+        <section data-audio="audio/05/08-escena.mp3">
+          <h2>my-review.ts</h2>
+          <p class="scene-desc">Render — el binding <code>@rating-changed</code></p>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"3-6"},{"time":5,"lines":"4-5"},{"time":12,"lines":"7-11"},{"time":20,"lines":"12-14"},{"time":26,"lines":"15-20"}]'>
+  render() {
+    return html`
+      &lt;my-rating
+        .value=${this._currentRating}
+        @rating-changed=${this._onRatingChanged}&gt;
+      &lt;/my-rating&gt;
+      &lt;textarea
+        .value=${this._inputText}
+        @input=${(e: InputEvent) =&gt;
+          this._inputText = (e.target as HTMLTextAreaElement).value}&gt;
+      &lt;/textarea&gt;
+      &lt;button ?disabled=${!this._currentRating} @click=${this._submit}&gt;
+        Enviar reseña
+      &lt;/button&gt;
+      ${this._reviews.map(r =&gt; html`
+        &lt;div class="review-item"&gt;
+          &lt;my-rating .value=${r.rating}&gt;&lt;/my-rating&gt;
+          &lt;p&gt;${r.text || html`&lt;em&gt;Sin comentario&lt;/em&gt;`}&lt;/p&gt;
+        &lt;/div&gt;
+      `)}
+    `;
+  }
+          </code></pre>
+          <div class="callout fragment" data-fragment-time="14">
+            <p>Simetría perfecta:<br/>
+            hijo emite <code>rating-changed</code> →
+            padre escucha <code>@rating-changed</code></p>
+          </div>
+        </section>
+      </section>
+
+<!-- ESCENA 9 — Sin composed          ======== -->
+      <section data-audio="audio/05/09-escena.mp3">
+        <h2><code>composed: true</code> — por qué importa</h2>
+        <p class="scene-desc">Demostración: qué pasa sin él</p>
+        <pre><code class="language-typescript" data-trim data-line-numbers
+          data-highlight-steps='[{"time":0,"lines":""},{"time":1,"lines":"4"}]'>
+this.dispatchEvent(new CustomEvent('rating-changed', {
+  detail: { rating },
+  bubbles: true,
+  // composed: true  ← comentado
+}));
+        </code></pre>
+        <div class="callout warning fragment" data-fragment-time="3">
+          <p>Sin <code>composed: true</code>: el evento queda atrapado
+          dentro del Shadow DOM de <code>my-rating</code>.<br/>
+          El padre <strong>nunca lo recibe</strong>. La valoración no cambia al hacer clic.</p>
+        </div>
+        <p class="note fragment" data-fragment-time="8">
+          Siempre incluye <code>composed: true</code> en eventos de componentes
+          que viven dentro de un Shadow DOM
+        </p>
+      </section>
+
+<!-- ESCENA 10 — Listener manual     ======== -->
+      <section data-audio="audio/05/10-escena.mp3">
+        <h2>Listener manual — sin <code>@Listen</code></h2>
+        <p class="scene-desc">Para casos fuera del template: <code>connectedCallback</code></p>
+        <pre><code class="language-typescript" data-trim data-line-numbers
+          data-highlight-steps='[{"time":0,"lines":""},{"time":4,"lines":"1-4"},{"time":12,"lines":"6-9"}]'>
+connectedCallback() {
+  super.connectedCallback();
+  this.addEventListener('rating-changed', this._onRatingChanged);
+}
+
+disconnectedCallback() {
+  super.disconnectedCallback();
+  this.removeEventListener('rating-changed', this._onRatingChanged);
+}
+        </code></pre>
+        <div class="callout warning fragment" data-fragment-time="4.5">
+          <p>No existe decorador <code>@Listen</code> en Lit.<br/>
+          Listener manual para casos especiales: escuchar en el propio componente raíz,
+          en <code>window</code> o en <code>document</code>.</p>
+        </div>
+        <p class="note fragment" data-fragment-time="11">
+          El <code>removeEventListener</code> en <code>disconnectedCallback</code>
+          es <strong>obligatorio</strong> para evitar fugas de memoria
+        </p>
+      </section>
+
+      <!-- ============================== -->
+      <!-- RESUMEN                        -->
+      <!-- ============================== -->
+      <section data-audio="audio/05/99-resumen.mp3">
+        <h2>Resumen</h2>
+        <ul>
+          <li class="fragment" data-fragment-time="1">Datos hacia abajo con propiedades — eventos hacia arriba</li>
+          <li class="fragment" data-fragment-time="5"><code>dispatchEvent(new CustomEvent(...))</code> emite desde el hijo</li>
+          <li class="fragment" data-fragment-time="9"><code>detail</code> — el payload; puede ser cualquier objeto</li>
+          <li class="fragment" data-fragment-time="13"><code>bubbles: true</code> — el evento sube por el DOM</li>
+          <li class="fragment" data-fragment-time="18"><code>composed: true</code> — cruza el Shadow DOM (sin él, el padre no lo recibe)</li>
+          <li class="fragment" data-fragment-time="24"><code>@nombre-evento=${handler}</code> — igual que cualquier evento nativo</li>
+          <li class="fragment" data-fragment-time="30">No hay <code>@Listen</code> — usar <code>addEventListener</code> en <code>connectedCallback</code> y limpiar en <code>disconnectedCallback</code></li>
+        </ul>
+        <p class="note fragment" data-fragment-time="30" style="margin-top:1em;">
+          Siguiente paso: <strong>Ciclo de vida de los componentes</strong>
+        </p>
+      </section>
+
+    </div>
+  </div>
+
+  <script type="module" src="/js/main.js"></script>
+</body>
+</html>

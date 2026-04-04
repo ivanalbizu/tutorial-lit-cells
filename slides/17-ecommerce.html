@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>17 — E-commerce completo | Lit + Cells</title>
+  <link rel="stylesheet" href="/node_modules/reveal.js/dist/reveal.css" />
+  <link rel="stylesheet" href="/node_modules/reveal.js/dist/theme/night.css" />
+  <link rel="stylesheet" href="/node_modules/reveal.js/plugin/highlight/monokai.css" />
+  <link rel="stylesheet" href="/css/custom.css" />
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- ============================== -->
+      <!-- INTRO                          -->
+      <!-- ============================== -->
+      <section data-audio="audio/17/00-intro.mp3">
+        <h1>E-commerce completo</h1>
+        <h3>Paso 17 — Todo a prueba</h3>
+        <p class="subtitle">4 Controllers · 3 Canales · Catálogo · Carrito · Favoritos · Toasts</p>
+      </section>
+
+<!-- ESCENA 1 — Visión general       ======== -->
+      <section>
+        <section data-audio="audio/17/01-escena.mp3">
+          <h2>Visión general</h2>
+          <p class="scene-desc">Funcionalidades del mini e-commerce</p>
+          <ul>
+            <li class="fragment" data-fragment-time="3">Catálogo con <strong>búsqueda con debounce</strong></li>
+            <li class="fragment" data-fragment-time="4">Detalle de producto con <strong>parámetros dinámicos</strong></li>
+            <li class="fragment" data-fragment-time="6">Carrito con <strong>cantidades</strong> y total calculado</li>
+            <li class="fragment" data-fragment-time="7">Lista de <strong>favoritos</strong> independiente</li>
+            <li class="fragment" data-fragment-time="9">Notificaciones <strong>toast</strong> con auto-dismiss</li>
+            <li class="fragment" data-fragment-time="10">Cleanup en <strong><code>onPageLeave</code></strong></li>
+          </ul>
+        </section>
+
+        <section data-audio="audio/17/01b-escena.mp3">
+          <h2>Estructura del proyecto</h2>
+          <p class="scene-desc">Separación clara de responsabilidades</p>
+          <div class="file-tree">
+            <pre>
+src/
+  controllers/
+    cart-controller.ts       canal: cart-items
+    wishlist-controller.ts   canal: wishlist-items
+    search-controller.ts     sin canal (debounce puro)
+    toast-controller.ts      canal: toast-messages
+  components/
+    app-header/
+    product-card/
+    toast-container/
+  pages/
+    home-page/       catálogo + búsqueda
+    product-page/    detalle + params
+    cart-page/       carrito + onPageLeave
+    wishlist-page/   favoritos
+  app.ts
+            </pre>
+          </div>
+        </section>
+      </section>
+
+<!-- ESCENA 2 — 4 Controllers        ======== -->
+      <section data-audio="audio/17/02-escena.mp3">
+        <h2>Los 4 Reactive Controllers</h2>
+        <p class="scene-desc">Cada uno gestiona un dominio independiente</p>
+        <div class="terminal">
+          <pre>
+CartController
+  canal: 'cart-items'
+  add(product) / remove(id) / clear()
+  getters: total, count, isEmpty
+
+WishlistController
+  canal: 'wishlist-items'
+  toggle(product) / has(id)
+  getter: count
+
+SearchController
+  sin canal — debounce puro con setTimeout
+  search(value) → espera 300ms → requestUpdate()
+
+ToastController
+  canal: 'toast-messages'
+  static show(text, type)   ← método estático global
+  dismiss(id)
+          </pre>
+        </div>
+      </section>
+
+<!-- ESCENA 3 — 3 Canales            ======== -->
+      <section data-audio="audio/17/03-escena.mp3">
+        <h2>Los 3 canales</h2>
+        <p class="scene-desc">Flujo de datos a través de la aplicación</p>
+        <div class="terminal">
+          <pre>
+  product-card                      app-header
+  cart-page        cart-items        badge carrito
+  product-page    ─────────────►
+
+  product-card                      app-header
+  wishlist-page   wishlist-items     badge favoritos
+                  ─────────────►
+
+  cualquier        toast-messages    toast-container
+  componente      ─────────────►    (auto-dismiss 3s)
+          </pre>
+        </div>
+        <p class="note fragment" data-fragment-time="14">
+          Tres canales completamente independientes<br/>
+          Cada uno con su ciclo de vida propio
+        </p>
+      </section>
+
+<!-- ESCENA 4 — SearchController     ======== -->
+      <section data-audio="audio/17/04-escena.mp3">
+        <h2><code>SearchController</code> — debounce sin canal</h2>
+        <p class="scene-desc">Reactive Controller puro — solo <code>setTimeout</code></p>
+        <pre><code class="language-typescript" data-trim data-line-numbers
+          data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"5"},{"time":5,"lines":"8-11"},{"time":9,"lines":"13-18"},{"time":14,"lines":"20-22"}]'>
+export class SearchController implements ReactiveController {
+  private host: ReactiveControllerHost;
+  private timer: ReturnType&lt;typeof setTimeout&gt; | null = null;
+  query: string = '';
+
+  constructor(host: ReactiveControllerHost) {
+    this.host = host;
+    host.addController(this);
+  }
+
+  hostConnected() {}
+
+  hostDisconnected() {
+    // Limpiar el timer pendiente al desconectar
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+  }
+
+  search(value: string) {
+    if (this.timer) clearTimeout(this.timer);
+    this.timer = setTimeout(() => {
+      this.query = value;
+      this.host.requestUpdate();
+      this.timer = null;
+    }, 300);
+  }
+
+  get hasQuery() {
+    return this.query.trim().length &gt; 0;
+  }
+}
+        </code></pre>
+        <p class="note fragment" data-fragment-time="13">
+          El usuario deja de escribir 300ms → <code>query</code> se actualiza → re-render<br/>
+          <code>hostDisconnected</code> limpia el timer para evitar llamadas huérfanas
+        </p>
+      </section>
+
+<!-- ESCENA 5 — ToastController      ======== -->
+      <section data-audio="audio/17/05-escena.mp3">
+        <h2><code>ToastController</code> — auto-remove tras 3 segundos</h2>
+        <p class="scene-desc">Método estático para publicar desde cualquier parte</p>
+        <pre><code class="language-typescript" data-trim data-line-numbers
+          data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"13-18"},{"time":9,"lines":"20-23"}]'>
+export class ToastController implements ReactiveController {
+  private host: ReactiveControllerHost;
+  messages: ToastMessage[] = [];
+
+  hostConnected() {
+    subscribe('toast-messages', (messages: ToastMessage[]) => {
+      this.messages = messages ?? [];
+      this.host.requestUpdate();
+    });
+  }
+
+  hostDisconnected() { unsubscribe('toast-messages'); }
+
+  static show(text: string, type: ToastMessage['type'] = 'info') {
+    const id = Date.now().toString();
+    publish('toast-messages', [{ id, text, type }]);
+  }
+
+  dismiss(id: string) {
+    publish('toast-messages', this.messages.filter(m => m.id !== id));
+  }
+}
+        </code></pre>
+        <div class="callout fragment" data-fragment-time="9">
+          <p><code>ToastController.show('mensaje', 'success')</code><br/>
+          Se llama sin instanciar el controller —<br/>
+          el <code>toast-container</code> recibe el mensaje y programa el auto-dismiss</p>
+        </div>
+      </section>
+
+<!-- ESCENA 6 — WishlistController   ======== -->
+      <section data-audio="audio/17/06-escena.mp3">
+        <h2><code>WishlistController</code> — segundo canal independiente</h2>
+        <p class="scene-desc">Mismo patrón, canal <code>wishlist-items</code></p>
+        <pre><code class="language-typescript" data-trim data-line-numbers
+          data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"5-8"},{"time":6,"lines":"10-16"},{"time":13,"lines":"18-23"}]'>
+export class WishlistController implements ReactiveController {
+  private host: ReactiveControllerHost;
+  items: WishlistItem[] = [];
+
+  hostConnected() {
+    subscribe('wishlist-items', (items: WishlistItem[]) => {
+      this.items = items ?? [];
+      this.host.requestUpdate();
+    });
+  }
+
+  hostDisconnected() { unsubscribe('wishlist-items'); }
+
+  toggle(product: WishlistItem) {
+    const exists = this.items.some(i => i.id === product.id);
+    publish('wishlist-items', exists
+      ? this.items.filter(i => i.id !== product.id)
+      : [...this.items, product]
+    );
+  }
+
+  has(id: string) {
+    return this.items.some(i => i.id === id);
+  }
+
+  get count() { return this.items.length; }
+}
+        </code></pre>
+        <p class="note fragment" data-fragment-time="13">
+          <code>toggle</code> — añade si no existe, elimina si ya está<br/>
+          <code>has(id)</code> — para mostrar el estado del botón en la tarjeta
+        </p>
+      </section>
+
+<!-- ESCENA 7 — Directiva live()     ======== -->
+      <section data-audio="audio/17/07-escena.mp3">
+        <h2>Directiva <code>live()</code> en el input de búsqueda</h2>
+        <p class="scene-desc">Evitar que el campo parpadee mientras el usuario escribe</p>
+        <pre><code class="language-typescript" data-trim data-line-numbers
+          data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"1"},{"time":5,"lines":"7-9"}]'>
+import { live } from 'lit/directives/live.js';
+
+render() {
+  return html`
+    &lt;h1&gt;Catálogo&lt;/h1&gt;
+    &lt;input
+      type="search"
+      placeholder="Buscar productos..."
+      .value=${live(this.search.query)}
+      @input=${(e: InputEvent) =&gt;
+        this.search.search((e.target as HTMLInputElement).value)
+      }
+    /&gt;
+    &lt;div class="grid"&gt;
+      ${repeat(this.filteredProducts, p =&gt; p.id, p =&gt; html`
+        &lt;product-card .product=${p}&gt;&lt;/product-card&gt;
+      `)}
+    &lt;/div&gt;
+  `;
+}
+        </code></pre>
+        <div class="callout fragment" data-fragment-time="8">
+          <p><code>live()</code> — compara el valor con el valor real del DOM<br/>
+          antes de actualizarlo. Evita que el cursor salte<br/>
+          al inicio mientras el usuario está escribiendo</p>
+        </div>
+      </section>
+
+      <!-- ============================== -->
+      <!-- ESCENA 8 — guard() product-card-->
+      <!-- ============================== -->
+      <section data-audio="audio/17/08-escena.mp3">
+        <h2><code>product-card</code> — tres controllers, un componente</h2>
+        <p class="scene-desc">Carrito, favoritos y toasts integrados</p>
+        <pre><code class="language-typescript" data-trim data-line-numbers
+          data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"5-7"},{"time":10,"lines":"9-13"},{"time":14,"lines":"15-21"}]'>
+@customElement('product-card')
+export class ProductCard extends LitElement {
+  @property({ type: Object }) product!: { id: string; name: string; price: number };
+
+  pageController = new PageController(this);
+  cart = new CartController(this);
+  wishlist = new WishlistController(this);
+
+  private handleAddToCart() {
+    this.cart.add(this.product);
+    ToastController.show(`${this.product.name} añadido al carrito`, 'success');
+  }
+
+  private handleToggleWishlist() {
+    const isInWishlist = this.wishlist.has(this.product.id);
+    this.wishlist.toggle(this.product);
+    ToastController.show(
+      isInWishlist
+        ? `${this.product.name} eliminado de favoritos`
+        : `${this.product.name} guardado en favoritos`,
+      'info'
+    );
+  }
+}
+        </code></pre>
+        <p class="note fragment" data-fragment-time="19">
+          El componente no gestiona ningún estado local —<br/>
+          todo el estado vive en los canales a través de los controllers
+        </p>
+      </section>
+
+<!-- ESCENA 9 — onPageLeave cleanup  ======== -->
+      <section data-audio="audio/17/09-escena.mp3">
+        <h2><code>onPageLeave</code> para lógica de salida</h2>
+        <p class="scene-desc">Más que desuscribirse: lógica de negocio al salir</p>
+        <pre><code class="language-typescript" data-trim data-line-numbers
+          data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"4-8"}]'>
+@customElement('cart-page')
+export class CartPage extends LitElement {
+  cart = new CartController(this);
+
+  onPageLeave() {
+    if (!this.cart.isEmpty) {
+      ToastController.show(`Tienes ${this.cart.count} item(s) en el carrito`, 'info');
+    }
+  }
+
+  render() {
+    return html`
+      &lt;h1&gt;Tu carrito&lt;/h1&gt;
+      ${when(
+        !this.cart.isEmpty,
+        () =&gt; html`...lista de items...`,
+        () =&gt; html`&lt;p&gt;Tu carrito está vacío.&lt;/p&gt;`
+      )}
+    `;
+  }
+}
+        </code></pre>
+        <div class="callout fragment" data-fragment-time="13">
+          <p>El CartController gestiona la suscripción automáticamente<br/>
+          via <code>hostConnected</code> / <code>hostDisconnected</code><br/>
+          <code>onPageLeave</code> queda libre para la lógica de negocio</p>
+        </div>
+      </section>
+
+<!-- ESCENA 10 — Diagrama flujo      ======== -->
+      <section data-audio="audio/17/10-escena.mp3">
+        <h2>Diagrama de flujo de datos</h2>
+        <p class="scene-desc">Los 3 canales coordinando la aplicación</p>
+        <div class="terminal">
+          <pre>
+product-card                         app-header
+  cart.add()   ──► cart-items ──►   badge carrito
+cart-page                            badge carrito
+  cart.remove()
+
+product-card                         app-header
+  wishlist.toggle() ► wishlist-items ► badge wish
+wishlist-page
+
+ToastController.show() ► toast-messages ► toast-container
+   (desde cualquier parte)                 (auto-dismiss 3s)
+
+home-page
+  search.search() ──► [debounce 300ms] ──► filteredProducts
+  (sin canal, sin publish)
+          </pre>
+        </div>
+        <p class="note fragment" data-fragment-time="17">
+          Tres canales independientes + un controller sin canal<br/>
+          Cada uno con su ciclo de vida y su dominio propio
+        </p>
+      </section>
+
+      <!-- ============================== -->
+      <!-- RESUMEN FINAL                  -->
+      <!-- ============================== -->
+      <section data-audio="audio/17/99-resumen.mp3">
+        <h2>Resumen del tutorial</h2>
+        <div class="file-tree">
+          <pre>
+Reactive Controllers utilizados
+  CartController     hostConnected/Disconnected + canal
+  WishlistController mismo patrón, canal independiente
+  SearchController   debounce sin canal, cleanup en hostDisconnected
+  ToastController    método estático show() + auto-dismiss
+
+Directivas utilizadas
+  repeat()    listas con clave → updates eficientes
+  when()      renderizado condicional
+  classMap()  clases dinámicas
+  live()      evitar parpadeo en inputs controlados
+
+Open Cells
+  startApp + PageController + navigate
+  subscribe / publish / unsubscribe
+  onPageEnter / onPageLeave
+  Múltiples canales independientes
+  Componentes fuera del router (header, toasts)
+          </pre>
+        </div>
+        <p class="note fragment" data-fragment-time="40" style="margin-top:1em;">
+          Fin del tutorial — <strong>Lit + Open Cells</strong>
+        </p>
+      </section>
+
+    </div>
+  </div>
+
+  <script type="module" src="/js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tutorial Lit + Cells</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      padding: 2rem;
+      max-width: 1180px;
+      margin: 0 auto;
+    }
+    h1 { color: #646cff; margin-bottom: 0.3em; }
+    h2 { color: #c4c4ff; font-size: 1.1em; margin: 2em 0 0.8em; }
+    .subtitle { color: #8b949e; margin-bottom: 2em; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1rem;
+    }
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 1.2em;
+      text-decoration: none;
+      color: inherit;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .card:hover {
+      border-color: #646cff;
+      transform: translateY(-2px);
+    }
+    .card .num { color: #646cff; font-weight: 700; font-size: 0.8em; }
+    .card .title { font-weight: 600; margin: 0.3em 0; }
+    .card .desc { color: #8b949e; font-size: 0.8em; }
+    .card.disabled {
+      opacity: 0.4;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>Tutorial Lit + Cells</h1>
+  <p class="subtitle">Presentaciones interactivas con audio</p>
+
+  <h2>Fase 1 — Fundamentos de Lit</h2>
+  <div class="grid">
+    <a class="card" href="01-setup.html">
+      <span class="num">01</span>
+      <div class="title">Setup del proyecto</div>
+      <div class="desc">Vite + Lit + TypeScript</div>
+    </a>
+    <a class="card" href="02-primer-componente.html">
+      <span class="num">02</span>
+      <div class="title">Primer componente</div>
+      <div class="desc">@customElement, render(), Shadow DOM</div>
+    </a>
+    <a class="card" href="03-propiedades-estado.html">
+      <span class="num">03</span>
+      <div class="title">Propiedades y estado</div>
+      <div class="desc">@property, @state, tipos</div>
+    </a>
+    <a class="card" href="04-templates-binding.html">
+      <span class="num">04</span>
+      <div class="title">Templates y binding</div>
+      <div class="desc">7 tipos de binding, condicionales, listas</div>
+    </a>
+    <a class="card" href="05-eventos.html">
+      <span class="num">05</span>
+      <div class="title">Eventos y comunicación</div>
+      <div class="desc">CustomEvent, padre-hijo</div>
+    </a>
+    <a class="card" href="06-ciclo-de-vida.html">
+      <span class="num">06</span>
+      <div class="title">Ciclo de vida</div>
+      <div class="desc">connectedCallback, firstUpdated, updated</div>
+    </a>
+    <a class="card" href="07-estilos.html">
+      <span class="num">07</span>
+      <div class="title">Estilos encapsulados</div>
+      <div class="desc">:host, ::part(), CSS custom properties</div>
+    </a>
+  </div>
+
+  <h2>Fase 2 — Lit Intermedio</h2>
+  <div class="grid">
+    <a class="card" href="08-directivas.html">
+      <span class="num">08</span>
+      <div class="title">Directivas</div>
+      <div class="desc">repeat, classMap, when, guard</div>
+    </a>
+    <a class="card" href="09-slots.html">
+      <span class="num">09</span>
+      <div class="title">Slots y composición</div>
+      <div class="desc">Named slots, fallback, slotchange</div>
+    </a>
+    <a class="card" href="10-reactive-controllers.html">
+      <span class="num">10</span>
+      <div class="title">Reactive Controllers</div>
+      <div class="desc">Lógica reutilizable con lifecycle</div>
+    </a>
+    <a class="card" href="11-decoradores-avanzados.html">
+      <span class="num">11</span>
+      <div class="title">Decoradores avanzados</div>
+      <div class="desc">@query, @queryAll, @queryAsync</div>
+    </a>
+  </div>
+
+  <h2>Fase 3 — Open Cells</h2>
+  <div class="grid">
+    <a class="card" href="12-intro-cells.html">
+      <span class="num">12</span>
+      <div class="title">Introducción a Cells</div>
+      <div class="desc">startApp(), rutas, arquitectura</div>
+    </a>
+    <a class="card" href="13-lit-en-cells.html">
+      <span class="num">13</span>
+      <div class="title">Lit dentro de Cells</div>
+      <div class="desc">PageController, navegación</div>
+    </a>
+    <a class="card" href="14-routing-avanzado.html">
+      <span class="num">14</span>
+      <div class="title">Routing avanzado</div>
+      <div class="desc">Params dinámicos, interceptor</div>
+    </a>
+    <a class="card" href="15-estado-channels.html">
+      <span class="num">15</span>
+      <div class="title">Estado compartido</div>
+      <div class="desc">Channels pub/sub</div>
+    </a>
+  </div>
+
+  <h2>Fase 4 — Proyecto práctico</h2>
+  <div class="grid">
+    <a class="card" href="16-proyecto-final.html">
+      <span class="num">16</span>
+      <div class="title">Proyecto final</div>
+      <div class="desc">CartController, directivas en Cells</div>
+    </a>
+    <a class="card" href="17-ecommerce.html">
+      <span class="num">17</span>
+      <div class="title">E-commerce completo</div>
+      <div class="desc">4 controllers, 3 canales, búsqueda</div>
+    </a>
+  </div>
+</body>
+</html>

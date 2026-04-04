@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>13 — Componentes Lit en Cells | Lit + Cells</title>
+  <link rel="stylesheet" href="/node_modules/reveal.js/dist/reveal.css" />
+  <link rel="stylesheet" href="/node_modules/reveal.js/dist/theme/night.css" />
+  <link rel="stylesheet" href="/node_modules/reveal.js/plugin/highlight/monokai.css" />
+  <link rel="stylesheet" href="/css/custom.css" />
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- ============================== -->
+      <!-- INTRO                          -->
+      <!-- ============================== -->
+      <section data-audio="audio/13/00-intro.mp3">
+        <h1>Componentes Lit en Cells</h1>
+        <h3>Paso 13 — Persistencia, reutilización y PageController</h3>
+        <p class="subtitle">Tres roles que puede jugar un componente Lit</p>
+      </section>
+
+<!-- ESCENA 1 — Tres roles           ======== -->
+      <section data-audio="audio/13/01-escena.mp3">
+        <h2>Tres roles en una app Cells</h2>
+        <p class="scene-desc">Cada componente tiene su lugar</p>
+        <div class="callout fragment" data-fragment-index="1" data-fragment-time="5">
+          <p><strong>Persistente</strong> — vive fuera del <code>mainNode</code>, en el HTML. Open Cells no lo toca. Ejemplo: <code>&lt;app-header&gt;</code>.</p>
+        </div>
+        <div class="callout fragment" data-fragment-index="2" data-fragment-time="18">
+          <p><strong>Reutilizable</strong> — Lit puro, sin dependencias de Open Cells. Se usa dentro de páginas como cualquier componente.</p>
+        </div>
+        <div class="callout fragment" data-fragment-index="3" data-fragment-time="28">
+          <p><strong>Página</strong> — vive dentro del <code>mainNode</code>. Open Cells gestiona su ciclo de vida. Puede usar <code>PageController</code>.</p>
+        </div>
+      </section>
+
+      <!-- ============================== -->
+      <!-- ESCENA 2 — app-header          -->
+      <!-- ============================== -->
+      <section>
+        <section data-audio="audio/13/02-escena.mp3">
+          <h2>app-header — componente persistente</h2>
+          <p class="scene-desc">Fuera del router, usa navigate global</p>
+          <pre><code class="language-typescript large" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"3"},{"time":7,"lines":"3,23-24"}]'>
+import { LitElement, html, css } from 'lit';
+import { customElement } from 'lit/decorators.js';
+import { navigate } from '@open-cells/core';
+
+@customElement('app-header')
+export class AppHeader extends LitElement {
+  static styles = css`
+    :host {
+      display: block;
+      background: #1a1a2e;
+      color: white;
+      padding: 0 1.5rem;
+    }
+    nav { display: flex; align-items: center; gap: 1rem; height: 56px; }
+    button { background: none; border: none; color: white;
+             font-size: 1rem; cursor: pointer; }
+  `;
+
+  render() {
+    return html`
+      &lt;nav&gt;
+        &lt;strong&gt;Cells App&lt;/strong&gt;
+        &lt;button @click=${() => navigate('home')}&gt;Inicio&lt;/button&gt;
+        &lt;button @click=${() => navigate('about')}&gt;About&lt;/button&gt;
+      &lt;/nav&gt;
+    `;
+  }
+}
+          </code></pre>
+        </section>
+
+        <section data-audio="audio/13/02b-escena.mp3">
+          <h2>¿Por qué navigate importada y no PageController?</h2>
+          <div class="callout fragment" data-fragment-index="1" data-fragment-time="3">
+            <p><code>app-header</code> <strong>no es una página</strong>. No vive dentro del <code>mainNode</code>. Open Cells no gestiona su ciclo de vida.</p>
+          </div>
+          <div class="callout fragment" data-fragment-index="2" data-fragment-time="8">
+            <p><code>PageController</code> necesita que el host sea una página gestionada por Cells. En <code>app-header</code> no tiene sentido.</p>
+          </div>
+          <div class="callout warning fragment" data-fragment-index="3" data-fragment-time="14">
+            <p>Para componentes fuera del <code>mainNode</code>, importa <code>navigate</code> directamente desde <code>@open-cells/core</code>.</p>
+          </div>
+        </section>
+      </section>
+
+<!-- ESCENA 3 — index.html actualizado  ======== -->
+      <section data-audio="audio/13/03-escena.mp3">
+        <h2>app-header en index.html</h2>
+        <p class="scene-desc">Fuera del contenedor mainNode</p>
+        <pre><code class="language-html" data-trim data-line-numbers
+          data-highlight-steps='[{"time":0,"lines":""},{"time":1,"lines":"2"},{"time":2.5,"lines":"2-3"}]'>
+&lt;body&gt;
+  &lt;app-header&gt;&lt;/app-header&gt;
+  &lt;div id="app-content"&gt;&lt;/div&gt;
+  &lt;script type="module"
+    src="/src/components/app-index.ts"&gt;&lt;/script&gt;
+&lt;/body&gt;
+        </code></pre>
+        <pre><code class="language-typescript" data-trim data-line-numbers
+          data-highlight-steps='[{"time":0,"lines":""},{"time":9,"lines":"3"},{"time":14,"lines":"3,4"}]'>
+// app-index.ts — importar para registrar el custom element
+import { startApp } from '@open-cells/core';
+import { routes } from '../router/routes.js';
+import './app-header.js';
+
+startApp({ routes, mainNode: 'app-content' });
+        </code></pre>
+        <p class="note fragment" data-fragment-time="5">
+          Al colocarlo antes del <code>div#app-content</code>, el header no se ve afectado cuando el router cambia de página.
+        </p>
+      </section>
+
+      <!-- ============================== -->
+      <!-- ESCENA 4 — feature-card        -->
+      <!-- ============================== -->
+      <section data-audio="audio/13/04-escena.mp3">
+        <h2>feature-card — componente reutilizable</h2>
+        <p class="scene-desc">Lit puro, agnóstico de Open Cells</p>
+        <pre><code class="language-typescript x-large" data-trim data-line-numbers>
+import { LitElement, html, css } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
+
+@customElement('feature-card')
+export class FeatureCard extends LitElement {
+  static styles = css`
+    :host {
+      display: block;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 1.25rem;
+      background: white;
+    }
+    h3 { margin-top: 0; color: #1a1a2e; }
+    p  { color: #555; line-height: 1.6; }
+  `;
+
+  @property() title = '';
+  @property() description = '';
+  @property() icon = '';
+
+  render() {
+    return html`
+      ${this.icon ? html`&lt;span&gt;${this.icon}&lt;/span&gt;` : ''}
+      &lt;h3&gt;${this.title}&lt;/h3&gt;
+      &lt;p&gt;${this.description}&lt;/p&gt;
+    `;
+  }
+}
+        </code></pre>
+        <p class="note fragment" data-fragment-time="5">
+          No importa nada de Open Cells. Podría usarse en cualquier proyecto web.
+        </p>
+      </section>
+
+<!-- ESCENA 5 — PageController       ======== -->
+      <section>
+        <section data-audio="audio/13/05-escena.mp3">
+          <h2>PageController</h2>
+          <p class="scene-desc">Reactive Controller para páginas Cells</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":1,"lines":"3"},{"time":4,"lines":"3,9"}]'>
+import { LitElement, html, css } from 'lit';
+import { customElement, state } from 'lit/decorators.js';
+import { PageController } from '@open-cells/page-controller';
+
+@customElement('demo-page')
+export class DemoPage extends LitElement {
+
+  // Se instancia igual que cualquier Reactive Controller
+  private pageController = new PageController(this);
+
+  @state() private _log: string[] = [];
+
+  // ... ciclo de vida y render en slides siguientes
+}
+          </code></pre>
+          <div class="callout fragment" data-fragment-time="9">
+            <p><code>PageController</code> se registra con <code>addController</code> internamente, igual que cualquier Reactive Controller.</p>
+          </div>
+        </section>
+
+        <section data-audio="audio/13/05b-escena.mp3">
+          <h2>onPageEnter y onPageLeave</h2>
+          <p class="scene-desc">Ciclo de vida de la página</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":1,"lines":"1-7"},{"time":10,"lines":"9-15"}]'>
+  onPageEnter() {
+    // Se llama cada vez que esta página se convierte en la activa
+    this._log = [
+      ...this._log,
+      `[${new Date().toLocaleTimeString()}] Página entró`,
+    ];
+  }
+
+  onPageLeave() {
+    // Se llama cuando el usuario navega fuera de esta página
+    this._log = [
+      ...this._log,
+      `[${new Date().toLocaleTimeString()}] Página salió`,
+    ];
+  }
+          </code></pre>
+          <div class="callout warning fragment" data-fragment-time="19">
+            <p>La página <strong>no se destruye</strong> al navegar: queda con <code>state="cached"</code>. Por eso <code>onPageLeave</code> es el lugar correcto para limpiar recursos.</p>
+          </div>
+        </section>
+      </section>
+
+<!-- ESCENA 6 — Render con navigate  ======== -->
+      <section>
+        <section data-audio="audio/13/06-escena.mp3">
+          <h2>Render de la página con feature-card</h2>
+          <pre><code class="language-typescript x-large" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"5-19"},{"time":8,"lines":"21-23"},{"time":14,"lines":"24-26"}]'>
+  render() {
+    return html`
+      &lt;h1&gt;Demo Page&lt;/h1&gt;
+      &lt;div class="grid"&gt;
+        &lt;feature-card
+          title="Routing"
+          description="Open Cells gestiona la navegación con hash."
+          icon="🗺"
+        &gt;&lt;/feature-card&gt;
+        &lt;feature-card
+          title="Lazy Loading"
+          description="Las páginas se cargan bajo demanda."
+          icon="⚡"
+        &gt;&lt;/feature-card&gt;
+        &lt;feature-card
+          title="PageController"
+          description="Reactive Controller para la navegación."
+          icon="🎮"
+        &gt;&lt;/feature-card&gt;
+      &lt;/div&gt;
+      &lt;div class="log"&gt;
+        ${this._log.map(e => html`&lt;div&gt;${e}&lt;/div&gt;`)}
+      &lt;/div&gt;
+      &lt;button @click=${() => this.pageController.navigate('about')}&gt;
+        Ir a About
+      &lt;/button&gt;
+    `;
+  }
+          </code></pre>
+        </section>
+
+        <section data-audio="audio/13/06b-escena.mp3">
+          <h2>navigate global vs pageController.navigate</h2>
+          <p class="scene-desc">Dos formas de navegar — misma función internamente</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers>
+// Opción A: función importada — para componentes fuera del mainNode
+import { navigate } from '@open-cells/core';
+navigate('home');
+
+// Opción B: método del controller — para páginas con PageController
+this.pageController.navigate('home');
+          </code></pre>
+          <div class="callout fragment" data-fragment-index="1" data-fragment-time="17">
+            <p>Ambas hacen lo mismo internamente. La diferencia es semántica: en páginas con <code>PageController</code>, usar el método del controller centraliza la dependencia de Open Cells.</p>
+          </div>
+          <p class="note fragment" data-fragment-index="2" data-fragment-time="29">
+            El argumento es siempre el <code>name</code> de la ruta, no el <code>path</code>.
+          </p>
+        </section>
+      </section>
+
+<!-- ESCENA 7 — Agregar ruta demo    ======== -->
+      <section data-audio="audio/13/07-escena.mp3">
+        <h2>Registrar la ruta demo</h2>
+        <p class="scene-desc">src/router/routes.ts</p>
+        <pre><code class="language-typescript" data-trim data-line-numbers>
+export const routes: AppRoute[] = [
+  { path: '/',      name: 'home',  component: 'home-page',
+    action: () => import('../pages/home/home-page.js') },
+  { path: '/about', name: 'about', component: 'about-page',
+    action: () => import('../pages/about/about-page.js') },
+
+  // Nueva ruta — cargada de forma lazy
+  { path: '/demo',  name: 'demo',  component: 'demo-page',
+    action: () => import('../pages/demo/demo-page.js') },
+];
+        </code></pre>
+        <p class="note fragment" data-fragment-time="1">
+          Al visitar <code>#/demo</code> por primera vez, el módulo se descarga. Al navegar y volver, el log acumula eventos porque la página no se destruyó.
+        </p>
+      </section>
+
+      <!-- ============================== -->
+      <!-- RESUMEN                        -->
+      <!-- ============================== -->
+      <section data-audio="audio/13/99-resumen.mp3">
+        <h2>Resumen</h2>
+        <div class="file-tree">
+          <pre>
+Persistente (fuera del mainNode)
+  → usa navigate() de @open-cells/core
+
+Reutilizable (Lit puro)
+  → sin dependencias de Open Cells
+
+Página (dentro del mainNode)
+  → PageController = new PageController(this)
+  → onPageEnter()  — página se activa
+  → onPageLeave()  — página se oculta (state="cached")
+  → this.pageController.navigate('nombre-ruta')
+          </pre>
+        </div>
+        <p class="note fragment" data-fragment-time="36" style="margin-top:1em;">
+          Siguiente paso: <strong>Routing avanzado — interceptores y guards</strong>
+        </p>
+      </section>
+
+    </div>
+  </div>
+
+  <script type="module" src="/js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>15 — Estado compartido con Channels | Lit + Cells</title>
+  <link rel="stylesheet" href="/node_modules/reveal.js/dist/reveal.css" />
+  <link rel="stylesheet" href="/node_modules/reveal.js/dist/theme/night.css" />
+  <link rel="stylesheet" href="/node_modules/reveal.js/plugin/highlight/monokai.css" />
+  <link rel="stylesheet" href="/css/custom.css" />
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- ============================== -->
+      <!-- INTRO                          -->
+      <!-- ============================== -->
+      <section data-audio="audio/15/00-intro.mp3">
+        <h1>Estado compartido</h1>
+        <h3>Paso 15 — Channels en Open Cells</h3>
+        <p class="subtitle">publish · subscribe · unsubscribe</p>
+      </section>
+
+<!-- ESCENA 1 — API de Channels      ======== -->
+      <section>
+        <section data-audio="audio/15/01-escena.mp3">
+          <h2>Los tres métodos de Channels</h2>
+          <p class="scene-desc">Bus de mensajes global con nombre</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers>
+import { subscribe, publish, unsubscribe } from '@open-cells/core';
+          </code></pre>
+          <p class="note fragment" data-fragment-time="13">
+            Patrón publish-subscribe sin imports directos entre páginas<br/>
+            Prefijo <code>ch-</code> por convención para identificar canales
+          </p>
+        </section>
+
+        <section data-audio="audio/15/01b-escena.mp3">
+          <h2>Los tres métodos de Channels</h2>
+          <p class="scene-desc">Cada función y su propósito</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"4"},{"time":5,"lines":"7-9"},{"time":8,"lines":"12"}]'>
+import { subscribe, publish, unsubscribe } from '@open-cells/core';
+
+// PUBLICAR: enviar un nuevo valor al canal
+publish('ch-cart', { items: [], total: 0 });
+
+// SUSCRIBIRSE: recibir valores cuando el canal cambia
+subscribe('ch-cart', (data) => {
+  console.log('Carrito actualizado:', data);
+});
+
+// DESUSCRIBIRSE: dejar de escuchar el canal
+unsubscribe('ch-cart');
+          </code></pre>
+          <p class="note fragment" data-fragment-time="10">
+            El nombre del canal es una cadena arbitraria<br/>
+            Cualquier componente puede publicar o suscribirse
+          </p>
+        </section>
+      </section>
+
+<!-- ESCENA 2 — Patrón ciclo vida    ======== -->
+      <section>
+        <section data-audio="audio/15/02-escena.mp3">
+          <h2>Patrón: <code>onPageEnter</code> / <code>onPageLeave</code></h2>
+          <p class="scene-desc">Gestión correcta del ciclo de vida</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers>
+@customElement('cart-page')
+export class CartPage extends LitElement {
+  pageController = new PageController(this);
+
+  @state() cartItems: CartItem[] = [];
+
+  onPageEnter() {
+    subscribe('ch-cart', (items: CartItem[]) => {
+      this.cartItems = items;
+    });
+  }
+
+  onPageLeave() {
+    unsubscribe('ch-cart');
+  }
+}
+          </code></pre>
+        </section>
+
+        <section data-audio="audio/15/02b-escena.mp3">
+          <h2>Patrón: <code>onPageEnter</code> / <code>onPageLeave</code></h2>
+          <p class="scene-desc">Por qué es importante</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"7-10"},{"time":5,"lines":"12-14"}]'>
+export class CartPage extends LitElement {
+  @state() cartItems: CartItem[] = [];
+
+  onPageEnter() {
+    // Nos suscribimos cuando la página se activa
+    subscribe('ch-cart', (items: CartItem[]) => {
+      this.cartItems = items;
+    });
+  }
+
+  onPageLeave() {
+    // Nos desuscribimos cuando la página se desactiva
+    unsubscribe('ch-cart');
+  }
+}
+          </code></pre>
+          <div class="callout warning fragment" data-fragment-time="8">
+            <p>Open Cells mantiene páginas en el DOM aunque estén ocultas<br/>
+            Sin <code>unsubscribe</code> en <code>onPageLeave</code> se acumulan<br/>
+            suscriptores duplicados → memory leaks</p>
+          </div>
+        </section>
+      </section>
+
+      <!-- ============================== -->
+      <!-- ESCENA 3 — product-page publica-->
+      <!-- ============================== -->
+      <section data-audio="audio/15/03-escena.mp3">
+        <h2>Flujo del carrito: publicar</h2>
+        <p class="scene-desc"><code>product-page</code> publica en el canal</p>
+        <pre><code class="language-typescript" data-trim data-line-numbers
+          data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"1"},{"time":5,"lines":"11-17"},{"time":9,"lines":"19-22"}]'>
+import { subscribe, publish, unsubscribe } from '@open-cells/core';
+
+@customElement('product-page')
+export class ProductPage extends LitElement {
+  pageController = new PageController(this);
+
+  @state() private currentCart: CartItem[] = [];
+
+  onPageEnter() {
+    // También escuchamos para tener el estado actual
+    subscribe('ch-cart', (items: CartItem[]) => {
+      this.currentCart = items;
+    });
+  }
+
+  onPageLeave() {
+    unsubscribe('ch-cart');
+  }
+
+  private addToCart(product: CartItem) {
+    const updated = [...this.currentCart, product];
+    publish('ch-cart', updated);
+  }
+}
+        </code></pre>
+        <p class="note fragment" data-fragment-time="15">
+          Leemos el estado actual → añadimos el nuevo producto → publicamos el array completo
+        </p>
+      </section>
+
+<!-- ESCENA 4 — Flujo bidireccional  ======== -->
+      <section data-audio="audio/15/04-escena.mp3">
+        <h2>Diagrama del flujo bidireccional</h2>
+        <p class="scene-desc">Las dos páginas leen y escriben en el mismo canal</p>
+        <div class="terminal">
+          <pre>
+product-page                    ch-cart                    cart-page
+    │                              │                           │
+    │  publish(updated)  ──────►   │   ──► callback(items) ►  │
+    │                              │                           │  @state actualizado
+    │                              │                           │  → re-render
+    │  ◄── callback(items) ◄───    │   ◄──  publish(updated)  │
+    │  (al eliminar un item)       │                           │
+          </pre>
+        </div>
+        <p class="note fragment" data-fragment-time="16">
+          El canal es el <strong>punto de verdad compartido</strong><br/>
+          Ambas páginas pueden leer y escribir en él<br/>
+          Se mantienen sincronizadas sin conocerse entre sí
+        </p>
+      </section>
+
+      <!-- ============================== -->
+      <!-- ESCENA 5 — cart-page escucha   -->
+      <!-- ============================== -->
+      <section data-audio="audio/15/05-escena.mp3">
+        <h2>Flujo del carrito: suscribirse</h2>
+        <p class="scene-desc"><code>cart-page</code> recibe y puede eliminar items</p>
+        <pre><code class="language-typescript" data-trim data-line-numbers
+          data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"8-10"},{"time":5,"lines":"12-14"},{"time":8,"lines":"16-19"}]'>
+@customElement('cart-page')
+export class CartPage extends LitElement {
+  pageController = new PageController(this);
+  @state() cartItems: CartItem[] = [];
+
+  onPageEnter() {
+    subscribe('ch-cart', (items: CartItem[]) => {
+      this.cartItems = items ?? [];
+    });
+  }
+
+  onPageLeave() {
+    unsubscribe('ch-cart');
+  }
+
+  private removeItem(id: string) {
+    const updated = this.cartItems.filter(item => item.id !== id);
+    publish('ch-cart', updated);
+  }
+
+  private get total() {
+    return this.cartItems.reduce((sum, item) => sum + item.price, 0);
+  }
+}
+        </code></pre>
+      </section>
+
+<!-- ESCENA 6 — Ventajas             ======== -->
+      <section data-audio="audio/15/06-escena.mp3">
+        <h2>Ventajas de los Channels</h2>
+        <p class="scene-desc">Por qué usar Channels en lugar de otras soluciones</p>
+        <ul>
+          <li class="fragment" data-fragment-time="3"><strong>Desacoplado</strong> — las páginas no se importan entre sí, no se conocen</li>
+          <li class="fragment" data-fragment-time="6"><strong>Global</strong> — cualquier componente en cualquier nivel puede publicar o suscribirse</li>
+          <li class="fragment" data-fragment-time="11"><strong>Simple</strong> — sin reducers, sin acciones, sin selectores. Solo <code>publish</code> y <code>subscribe</code></li>
+          <li class="fragment" data-fragment-time="16"><strong>Lifecycle-aware</strong> — el patrón <code>onPageEnter</code> / <code>onPageLeave</code> evita memory leaks automáticamente</li>
+        </ul>
+        <div class="callout fragment" data-fragment-time="18" style="margin-top: 1rem;">
+          <p>El canal es una cadena de texto — el contrato entre publicador y suscriptor<br/>
+          Si el nombre no coincide, los mensajes no llegan</p>
+        </div>
+      </section>
+
+      <!-- ============================== -->
+      <!-- RESUMEN                        -->
+      <!-- ============================== -->
+      <section data-audio="audio/15/99-resumen.mp3">
+        <h2>Resumen</h2>
+        <div class="file-tree">
+          <pre>
+Channels — API
+  publish('ch-cart', data)           enviar valor al canal
+  subscribe('ch-cart', callback)     recibir valores
+  unsubscribe('ch-cart')             dejar de escuchar
+
+Patrón del ciclo de vida
+  onPageEnter() → subscribe(...)
+  onPageLeave() → unsubscribe(...)
+
+Flujo del carrito
+  product-page publica → cart-page escucha
+  cart-page publica    → product-page escucha (si activa)
+  Canal = fuente de verdad compartida
+          </pre>
+        </div>
+        <p class="note fragment" data-fragment-time="21" style="margin-top:1em;">
+          Siguiente paso: <strong>Proyecto final — Todo junto</strong>
+        </p>
+      </section>
+
+    </div>
+  </div>
+
+  <script type="module" src="/js/main.js"></script>
+</body>
+</html>

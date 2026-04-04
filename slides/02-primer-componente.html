@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>02 — Primer componente | Lit + Cells</title>
+  <link rel="stylesheet" href="/node_modules/reveal.js/dist/reveal.css" />
+  <link rel="stylesheet" href="/node_modules/reveal.js/dist/theme/night.css" />
+  <link rel="stylesheet" href="/node_modules/reveal.js/plugin/highlight/monokai.css" />
+  <link rel="stylesheet" href="/css/custom.css" />
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- ============================== -->
+      <!-- INTRO                          -->
+      <!-- ============================== -->
+      <section data-audio="audio/02/00-intro.mp3">
+        <h1>Lit + Cells</h1>
+        <h3>Paso 2 — Tu primer componente</h3>
+        <p class="subtitle">Web Components con LitElement</p>
+      </section>
+
+<!-- ESCENA 1 — Estructura           ======== -->
+      <section data-audio="audio/02/01-escena.mp3">
+        <h2>Estructura del proyecto</h2>
+        <p class="scene-desc">Partimos del setup anterior</p>
+        <div class="file-tree">
+          <pre>
+src/
+  index.ts     ← punto de entrada
+  my-greeting.ts  ← vamos a crearlo
+          </pre>
+        </div>
+        <p class="note fragment" data-fragment-time="7">
+          Convención: un archivo por componente, con el mismo nombre que el tag HTML
+        </p>
+      </section>
+
+<!-- ESCENA 2 — Imports              ======== -->
+      <section>
+        <section data-audio="audio/02/02-escena.mp3">
+          <h2>src/my-greeting.ts</h2>
+          <p class="scene-desc">Imports básicos de Lit</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers>
+import { LitElement, html, css } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
+          </code></pre>
+          <div class="callout fragment" data-fragment-time="3">
+            <p>
+              <code>LitElement</code> — clase base<br/>
+              <code>html</code> — template literal etiquetado<br/>
+              <code>css</code> — estilos encapsulados
+            </p>
+          </div>
+          <p class="note fragment" data-fragment-time="16">
+            Los decoradores <code>@customElement</code> y <code>@property</code>
+            vienen de <code>lit/decorators.js</code>
+          </p>
+        </section>
+
+<!-- ESCENA 3 — @customElement       ======== -->
+        <section data-audio="audio/02/03-escena.mp3">
+          <h2>src/my-greeting.ts</h2>
+          <p class="scene-desc">Registrar el componente en el navegador</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":3,"lines":"4"},{"time":16,"lines":"5-6"}]'>
+import { LitElement, html, css } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
+
+@customElement('my-greeting')
+export class MyGreeting extends LitElement {
+}
+          </code></pre>
+          <div class="callout fragment" data-fragment-time="4">
+            <p><code>@customElement('my-greeting')</code><br/>
+            Registra el tag en el navegador. A partir de aquí, el navegador
+            sabe qué hacer al encontrar <code>&lt;my-greeting&gt;</code>.</p>
+          </div>
+          <p class="note fragment" data-fragment-time="17">
+            <code>extends LitElement</code> hereda reactividad y Shadow DOM automático
+          </p>
+        </section>
+
+<!-- ESCENA 4 — @property            ======== -->
+        <section data-audio="audio/02/04-escena.mp3">
+          <h2>src/my-greeting.ts</h2>
+          <p class="scene-desc">Añadir una propiedad reactiva</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":4,"lines":"4-5"}]'>
+@customElement('my-greeting')
+export class MyGreeting extends LitElement {
+
+  @property({ type: String, reflect: true })
+  name = 'Mundo';
+
+}
+          </code></pre>
+          <p class="note fragment" data-fragment-time="3">
+            <code>type: String</code> — convierte el atributo HTML al tipo correcto
+          </p>
+          <div class="callout warning fragment" data-fragment-time="13">
+            <p><code>reflect: true</code> — sincroniza la propiedad JS con el atributo HTML.<br/>
+            Si cambias la propiedad por código, el atributo en el DOM se actualiza también.</p>
+          </div>
+        </section>
+
+<!-- ESCENA 5 — static styles        ======== -->
+        <section data-audio="audio/02/05-escena.mp3">
+          <h2>src/my-greeting.ts</h2>
+          <p class="scene-desc">Estilos encapsulados en el Shadow DOM</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"7-10"}]'>
+@customElement('my-greeting')
+export class MyGreeting extends LitElement {
+
+  @property({ type: String, reflect: true })
+  name = 'Mundo';
+
+  static styles = css`
+    :host { display: block; padding: 1rem; }
+    .highlight { color: #646cff; font-weight: bold; }
+  `;
+
+}
+          </code></pre>
+          <p class="note fragment" data-fragment-time="7">
+            <code>:host</code> apunta al propio elemento <code>&lt;my-greeting&gt;</code> en el DOM
+          </p>
+          <div class="callout fragment" data-fragment-time="20">
+            <p>Los estilos están dentro del Shadow DOM: no afectan al resto de la página
+            y los estilos externos tampoco los sobreescriben.</p>
+          </div>
+        </section>
+
+<!-- ESCENA 6 — render()             ======== -->
+        <section data-audio="audio/02/06-escena.mp3">
+          <h2>src/my-greeting.ts</h2>
+          <p class="scene-desc">El método <code>render()</code></p>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":1,"lines":"12-16"}]'>
+@customElement('my-greeting')
+export class MyGreeting extends LitElement {
+
+  @property({ type: String, reflect: true })
+  name = 'Mundo';
+
+  static styles = css`
+    :host { display: block; padding: 1rem; }
+    .highlight { color: #646cff; font-weight: bold; }
+  `;
+
+  render() {
+    return html`
+      &lt;p&gt;Hola, &lt;span class="highlight"&gt;${this.name}&lt;/span&gt;!&lt;/p&gt;
+    `;
+  }
+}
+          </code></pre>
+          <div class="callout fragment" data-fragment-time="13">
+            <p>Cada vez que <code>name</code> cambie, Lit llama a <code>render()</code>
+            y actualiza <strong>solo la parte del DOM que cambió</strong>.</p>
+          </div>
+        </section>
+
+<!-- ESCENA 7 — Componente completo  ======== -->
+        <section data-audio="audio/02/07-escena.mp3">
+          <h2>Componente completo</h2>
+          <p class="scene-desc">Estructura que repetiremos en todos los componentes</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers>
+import { LitElement, html, css } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
+
+@customElement('my-greeting')
+export class MyGreeting extends LitElement {
+
+  @property({ type: String, reflect: true })
+  name = 'Mundo';
+
+  static styles = css`
+    :host { display: block; padding: 1rem; }
+    .highlight { color: #646cff; font-weight: bold; }
+  `;
+
+  render() {
+    return html`
+      &lt;p&gt;Hola, &lt;span class="highlight"&gt;${this.name}&lt;/span&gt;!&lt;/p&gt;
+    `;
+  }
+}
+          </code></pre>
+        </section>
+      </section>
+
+<!-- ESCENA 8 — Uso en HTML          ======== -->
+      <section>
+        <section data-audio="audio/02/08-escena.mp3">
+          <h2>Importar el componente</h2>
+          <p class="scene-desc">src/main.ts — registrar el tag</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers>
+import './my-greeting.js';
+          </code></pre>
+          <p class="note fragment" data-fragment-time="3">
+            El import ejecuta el decorador <code>@customElement</code>
+            y registra el tag en el navegador
+          </p>
+        </section>
+
+        <section data-audio="audio/02/08b-escena.mp3">
+          <h2>Usar el componente en HTML</h2>
+          <p class="scene-desc">index.html — como cualquier elemento nativo</p>
+          <pre><code class="language-html" data-trim data-line-numbers>
+&lt;!-- Sin atributo: usa el valor por defecto "Mundo" --&gt;
+&lt;my-greeting&gt;&lt;/my-greeting&gt;
+
+&lt;!-- Con atributo: sobrescribe el valor por defecto --&gt;
+&lt;my-greeting name="Lit"&gt;&lt;/my-greeting&gt;
+          </code></pre>
+          <div class="browser-preview fragment" data-fragment-time="4">
+            <div class="browser-bar">localhost:5173</div>
+            <div class="browser-content">
+              <p style="color:#eee;">Hola, <span style="color:#646cff;font-weight:bold;">Mundo</span>!</p>
+              <p style="color:#eee;">Hola, <span style="color:#646cff;font-weight:bold;">Lit</span>!</p>
+            </div>
+          </div>
+        </section>
+      </section>
+
+<!-- ESCENA 9 — Shadow DOM           ======== -->
+      <section data-audio="audio/02/09-escena.mp3">
+        <h2>Shadow DOM en DevTools</h2>
+        <p class="scene-desc">El HTML interno está encapsulado</p>
+        <div class="terminal">
+          <pre>
+&lt;my-greeting&gt;
+  #shadow-root
+    &lt;style&gt;:host { display: block; ... }&lt;/style&gt;
+    &lt;p&gt;Hola, &lt;span class="highlight"&gt;Lit&lt;/span&gt;!&lt;/p&gt;
+&lt;/my-greeting&gt;
+          </pre>
+        </div>
+        <p class="note fragment" data-fragment-time="12">
+          Shadow DOM nativo del navegador <span data-fragment-time="14">— Lit lo usa y lo gestiona por nosotros</span>
+        </p>
+        <div class="callout fragment" data-fragment-time="7">
+          <p>Los estilos también viven dentro de la shadow root.
+          Intentar sobreescribir <code>.highlight</code> desde CSS global no tiene efecto.</p>
+        </div>
+      </section>
+
+      <!-- ============================== -->
+      <!-- RESUMEN                        -->
+      <!-- ============================== -->
+      <section data-audio="audio/02/99-resumen.mp3">
+        <h2>Resumen</h2>
+        <ul>
+          <li class="fragment" data-fragment-time="1"><code>@customElement('my-greeting')</code> — registra el tag en el navegador</li>
+          <li class="fragment" data-fragment-time="5"><code>extends LitElement</code> — hereda reactividad y Shadow DOM</li>
+          <li class="fragment" data-fragment-time="9"><code>@property()</code> — propiedad reactiva pública</li>
+          <li class="fragment" data-fragment-time="13"><code>reflect: true</code> — sincroniza propiedad JS ↔ atributo HTML</li>
+          <li class="fragment" data-fragment-time="17"><code>static styles = css`...`</code> — estilos encapsulados</li>
+          <li class="fragment" data-fragment-time="20"><code>render()</code> — Lit lo llama al cambiar las propiedades</li>
+        </ul>
+        <p class="note fragment" data-fragment-time="26" style="margin-top:1em;">
+          Siguiente paso: <strong>Propiedades y estado reactivo</strong>
+        </p>
+      </section>
+
+    </div>
+  </div>
+
+  <script type="module" src="/js/main.js"></script>
+</body>
+</html>

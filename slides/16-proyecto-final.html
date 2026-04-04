@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>16 — Proyecto final | Lit + Cells</title>
+  <link rel="stylesheet" href="/node_modules/reveal.js/dist/reveal.css" />
+  <link rel="stylesheet" href="/node_modules/reveal.js/dist/theme/night.css" />
+  <link rel="stylesheet" href="/node_modules/reveal.js/plugin/highlight/monokai.css" />
+  <link rel="stylesheet" href="/css/custom.css" />
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- ============================== -->
+      <!-- INTRO                          -->
+      <!-- ============================== -->
+      <section data-audio="audio/16/00-intro.mp3">
+        <h1>Proyecto final</h1>
+        <h3>Paso 16 — Todo junto</h3>
+        <p class="subtitle">CartController · Slots · Directivas · @query</p>
+      </section>
+
+<!-- ESCENA 1 — CartController       ======== -->
+      <section>
+        <section data-audio="audio/16/01-escena.mp3">
+          <h2>Controller como puente</h2>
+          <p class="scene-desc">Reactive Controller + Channels = sincronización global</p>
+          <div class="terminal">
+            <pre>
+Lit (hostConnected)    →  subscribe al canal
+Lit (hostDisconnected) →  unsubscribe
+Acciones del controller →  publish
+Callback del canal     →  requestUpdate()
+
+Resultado: cualquier componente con el controller
+           se sincroniza automáticamente
+            </pre>
+          </div>
+          <p class="note fragment" data-fragment-time="18">
+            El controller es el <strong>pegamento</strong> entre Lit y Cells<br/>
+            Los componentes solo instancian el controller y consumen sus datos
+          </p>
+        </section>
+
+        <section data-audio="audio/16/01b-escena.mp3">
+          <h2>CartController — estructura</h2>
+          <p class="scene-desc">Implementa <code>ReactiveController</code> de Lit</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers>
+import { ReactiveController, ReactiveControllerHost } from 'lit';
+import { subscribe, unsubscribe, publish } from '@open-cells/core';
+
+const CART_CHANNEL = 'ch-cart';
+
+export interface CartItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+}
+
+export class CartController implements ReactiveController {
+  private host: ReactiveControllerHost;
+  items: CartItem[] = [];
+
+  constructor(host: ReactiveControllerHost) {
+    this.host = host;
+    host.addController(this);
+  }
+}
+          </code></pre>
+        </section>
+
+        <section data-audio="audio/16/01c-escena.mp3">
+          <h2>CartController — ciclo de vida</h2>
+          <p class="scene-desc"><code>hostConnected</code> suscribe, <code>hostDisconnected</code> desuscribe</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"1-6"},{"time":7,"lines":"8-10"}]'>
+hostConnected() {
+  subscribe(CART_CHANNEL, (items: CartItem[]) => {
+    this.items = items ?? [];
+    this.host.requestUpdate();
+  });
+}
+
+hostDisconnected() {
+  unsubscribe(CART_CHANNEL);
+}
+          </code></pre>
+          <div class="callout fragment" data-fragment-time="8">
+            <p><code>requestUpdate()</code> — desencadena el re-render del componente host<br/>
+            Cada componente que instancia el controller queda sincronizado</p>
+          </div>
+        </section>
+
+        <section data-audio="audio/16/01d-escena.mp3">
+          <h2>CartController — acciones y getters</h2>
+          <p class="scene-desc">Las acciones siempre publican en el canal</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"1-10"},{"time":5,"lines":"12-14"},{"time":8,"lines":"16-18"},{"time":11,"lines":"20-22"},{"time":13,"lines":"24-26"},{"time":14,"lines":"28-30"}]'>
+add(product: Omit&lt;CartItem, 'quantity'&gt;) {
+  const existing = this.items.find(i => i.id === product.id);
+  let updated: CartItem[];
+  if (existing) {
+    updated = this.items.map(i =>
+      i.id === product.id ? { ...i, quantity: i.quantity + 1 } : i
+    );
+  } else {
+    updated = [...this.items, { ...product, quantity: 1 }];
+  }
+  publish(CART_CHANNEL, updated);
+}
+
+remove(id: string) {
+  publish(CART_CHANNEL, this.items.filter(i => i.id !== id));
+}
+
+clear() {
+  publish(CART_CHANNEL, []);
+}
+
+get total() {
+  return this.items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+}
+
+get count() {
+  return this.items.reduce((sum, i) => sum + i.quantity, 0);
+}
+
+get isEmpty() {
+  return this.items.length === 0;
+}
+          </code></pre>
+          <p class="note fragment" data-fragment-time="13">
+            <code>items</code> nunca se modifica directamente —<br/>
+            la actualización llega siempre a través del canal
+          </p>
+        </section>
+      </section>
+
+<!-- ESCENA 2 — Badge en header      ======== -->
+      <section data-audio="audio/16/02-escena.mp3">
+        <h2>Badge dinámico en <code>app-header</code></h2>
+        <p class="scene-desc">Instanciar el controller = sincronización automática</p>
+        <pre><code class="language-typescript" data-trim data-line-numbers
+          data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"5"},{"time":5,"lines":"7-8"},{"time":10,"lines":"12-16"}]'>
+import { CartController } from '../../controllers/cart-controller.js';
+
+@customElement('app-header')
+export class AppHeader extends LitElement {
+  pageController = new PageController(this);
+  cart = new CartController(this);
+
+  render() {
+    return html`
+      &lt;header&gt;
+        &lt;span @click=${() =&gt; this.pageController.navigate('home')}&gt;Tienda&lt;/span&gt;
+        &lt;nav&gt;
+          &lt;a @click=${() =&gt; this.pageController.navigate('cart')}&gt;
+            Carrito
+            ${this.cart.count &gt; 0
+              ? html`&lt;span class="badge"&gt;${this.cart.count}&lt;/span&gt;`
+              : ''
+            }
+          &lt;/a&gt;
+        &lt;/nav&gt;
+      &lt;/header&gt;
+    `;
+  }
+}
+        </code></pre>
+        <p class="note fragment" data-fragment-time="11">
+          El header no sabe nada del carrito —<br/>
+          solo consume <code>cart.count</code> del controller
+        </p>
+      </section>
+
+      <!-- ============================== -->
+      <!-- ESCENA 3 — page-layout slots   -->
+      <!-- ============================== -->
+      <section>
+        <section data-audio="audio/16/03-escena.mp3">
+          <h2><code>page-layout</code> con slots</h2>
+          <p class="scene-desc">Componente de presentación puro</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers>
+@customElement('page-layout')
+export class PageLayout extends LitElement {
+  render() {
+    return html`
+      &lt;div class="layout"&gt;
+        &lt;div class="header-slot"&gt;
+          &lt;slot name="subtitle"&gt;&lt;/slot&gt;
+        &lt;/div&gt;
+        &lt;main&gt;
+          &lt;slot&gt;&lt;/slot&gt;
+        &lt;/main&gt;
+        &lt;footer&gt;
+          &lt;slot name="footer"&gt;&lt;/slot&gt;
+        &lt;/footer&gt;
+      &lt;/div&gt;
+    `;
+  }
+}
+          </code></pre>
+        </section>
+
+        <section data-audio="audio/16/03b-escena.mp3">
+          <h2><code>page-layout</code> — uso en una página</h2>
+          <p class="scene-desc">Las páginas pasan contenido a los slots</p>
+          <pre><code class="language-html" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":5,"lines":"2"},{"time":8,"lines":"4"},{"time":10,"lines":"6"}]'>
+&lt;page-layout&gt;
+  &lt;span slot="subtitle"&gt;Catálogo de productos&lt;/span&gt;
+
+  &lt;ul&gt;...lista de productos...&lt;/ul&gt;
+
+  &lt;span slot="footer"&gt;© 2024 Mi Tienda&lt;/span&gt;
+&lt;/page-layout&gt;
+          </code></pre>
+          <div class="callout fragment" data-fragment-time="12">
+            <p>Slot sin nombre → contenido principal (<code>&lt;main&gt;</code>)<br/>
+            <code>slot="subtitle"</code> → cabecera contextual<br/>
+            <code>slot="footer"</code> → pie de página</p>
+          </div>
+        </section>
+      </section>
+
+<!-- ESCENA 4 — Directivas en home   ======== -->
+      <section data-audio="audio/16/04-escena.mp3">
+        <h2>Directivas en <code>home-page</code></h2>
+        <p class="scene-desc"><code>when()</code>, <code>classMap()</code>, <code>repeat()</code></p>
+        <pre><code class="language-typescript" data-trim data-line-numbers
+          data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"1-3"},{"time":5,"lines":"7-9"},{"time":8,"lines":"11-17"},{"time":12,"lines":"18-20"}]'>
+import { repeat } from 'lit/directives/repeat.js';
+import { when } from 'lit/directives/when.js';
+import { classMap } from 'lit/directives/class-map.js';
+
+render() {
+  return html`
+    &lt;page-layout&gt;
+      &lt;span slot="subtitle"&gt;Catálogo de productos&lt;/span&gt;
+
+      ${when(
+        PRODUCTS.length &gt; 0,
+        () =&gt; html`
+          &lt;ul class="product-list"&gt;
+            ${repeat(PRODUCTS, p =&gt; p.id, p =&gt; {
+              const inCart = this.cart.items.some(i =&gt; i.id === p.id);
+              return html`
+                &lt;li class=${classMap({ 'product-card': true, 'in-cart': inCart })}&gt;
+                  ...
+                &lt;/li&gt;
+              `;
+            })}
+          &lt;/ul&gt;
+        `,
+        () =&gt; html`&lt;p&gt;No hay productos disponibles.&lt;/p&gt;`
+      )}
+    &lt;/page-layout&gt;
+  `;
+}
+        </code></pre>
+      </section>
+
+<!-- ESCENA 5 — @query scroll        ======== -->
+      <section data-audio="audio/16/05-escena.mp3">
+        <h2><code>@query</code> para scroll automático</h2>
+        <p class="scene-desc">Referencia tipada a un elemento del Shadow DOM</p>
+        <pre><code class="language-typescript" data-trim data-line-numbers
+          data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"4"},{"time":8,"lines":"6-10"}]'>
+@customElement('cart-page')
+export class CartPage extends LitElement {
+  cart = new CartController(this);
+  @query('.cart-summary') summaryEl!: HTMLElement;
+
+  onPageEnter() {
+    // Esperar a que el template se haya renderizado
+    this.updateComplete.then(() => {
+      this.summaryEl?.scrollIntoView({ behavior: 'smooth' });
+    });
+  }
+
+  render() {
+    return html`
+      &lt;page-layout&gt;
+        &lt;span slot="subtitle"&gt;Tu carrito (${this.cart.count} items)&lt;/span&gt;
+        ...
+        &lt;div class="cart-summary"&gt;
+          &lt;strong&gt;Total: ${this.cart.total}€&lt;/strong&gt;
+          &lt;button @click=${() =&gt; this.cart.clear()}&gt;Vaciar carrito&lt;/button&gt;
+        &lt;/div&gt;
+      &lt;/page-layout&gt;
+    `;
+  }
+}
+        </code></pre>
+        <p class="note fragment" data-fragment-time="8">
+          <code>updateComplete</code> — promesa que resuelve después del render<br/>
+          El scroll suave lleva al resumen cuando navegas al carrito
+        </p>
+      </section>
+
+<!-- ESCENA 6 — Diagrama controller  ======== -->
+      <section data-audio="audio/16/06-escena.mp3">
+        <h2>Diagrama: Controller como puente</h2>
+        <p class="scene-desc">Cada componente con el controller queda sincronizado</p>
+        <div class="terminal">
+          <pre>
+  app-header          home-page           cart-page
+  cart = new          cart = new          cart = new
+  CartController(this) CartController(this) CartController(this)
+       │                   │                    │
+       └───────────────────┴────────────────────┘
+                           │
+                    CartController
+                    hostConnected() → subscribe('ch-cart', ...)
+                    hostDisconnected() → unsubscribe('ch-cart')
+                    add/remove/clear() → publish('ch-cart', ...)
+                           │
+                       canal ch-cart
+          </pre>
+        </div>
+        <p class="note fragment" data-fragment-time="3">
+          Tres instancias del controller, un único canal<br/>
+          Cuando cualquiera publica, los tres se actualizan
+        </p>
+      </section>
+
+      <!-- ============================== -->
+      <!-- RESUMEN                        -->
+      <!-- ============================== -->
+      <section data-audio="audio/16/99-resumen.mp3">
+        <h2>Resumen</h2>
+        <div class="file-tree">
+          <pre>
+CartController
+  hostConnected()    → subscribe + requestUpdate()
+  hostDisconnected() → unsubscribe
+  add/remove/clear() → publish en el canal
+  total/count/isEmpty → getters calculados
+
+page-layout
+  slot sin nombre → contenido principal
+  slot="subtitle" → cabecera contextual
+  slot="footer"   → pie de página
+
+Directivas en páginas
+  when()     → renderizado condicional
+  classMap() → clases dinámicas
+  repeat()   → listas con clave única
+
+@query
+  .summaryEl → referencia tipada al DOM
+  updateComplete.then() → scroll tras render
+          </pre>
+        </div>
+        <p class="note fragment" data-fragment-time="26" style="margin-top:1em;">
+          Siguiente paso: <strong>E-commerce completo</strong>
+        </p>
+      </section>
+
+    </div>
+  </div>
+
+  <script type="module" src="/js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>04 — Templates y binding | Lit + Cells</title>
+  <link rel="stylesheet" href="/node_modules/reveal.js/dist/reveal.css" />
+  <link rel="stylesheet" href="/node_modules/reveal.js/dist/theme/night.css" />
+  <link rel="stylesheet" href="/node_modules/reveal.js/plugin/highlight/monokai.css" />
+  <link rel="stylesheet" href="/css/custom.css" />
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- ============================== -->
+      <!-- INTRO                          -->
+      <!-- ============================== -->
+      <section data-audio="audio/04/00-intro.mp3">
+        <h1>Lit + Cells</h1>
+        <h3>Paso 4 — Templates y los 7 tipos de binding</h3>
+        <p class="subtitle">Enlazar datos con el DOM de forma declarativa</p>
+      </section>
+
+<!-- ESCENA 1 — Qué es un binding    ======== -->
+      <section data-audio="audio/04/01-escena.mp3">
+        <h2>¿Qué es un binding?</h2>
+        <p class="scene-desc">Una conexión entre JavaScript y el DOM</p>
+        <div style="display:flex; gap:2rem; justify-content:center; align-items:center; margin-top:1rem;">
+          <div class="callout" style="flex:1; text-align:center;">
+            <p style="font-size:1.2em;"><strong>Expresión JS</strong></p>
+          </div>
+          <div style="font-size:2em;">→</div>
+          <div class="callout" style="flex:1; text-align:center;">
+            <p style="font-size:1.2em;"><strong>DOM</strong></p>
+          </div>
+        </div>
+        <p class="note fragment" data-fragment-time="5" style="margin-top:1.5rem;">
+          Cuando la expresión cambia, Lit actualiza <strong>solo las partes afectadas</strong> del DOM
+        </p>
+        <div class="callout fragment" data-fragment-time="15">
+          <p>Hay <strong>7 tipos</strong> de binding, dependiendo de qué parte del DOM quieres afectar</p>
+        </div>
+      </section>
+
+<!-- ESCENA 2 — Binding 1: Texto     ======== -->
+      <section data-audio="audio/04/02-escena.mp3">
+        <h2>1 — Interpolación de texto</h2>
+        <p class="scene-desc"><code>${expresion}</code> dentro del template</p>
+        <pre><code class="language-typescript" data-trim data-line-numbers>
+// Propiedad del componente
+html`&lt;p&gt;${this.title}&lt;/p&gt;`
+
+// Expresión aritmética
+html`&lt;p&gt;${2 + 2}&lt;/p&gt;`
+
+// Cálculo con datos
+html`&lt;p&gt;${this.items.length} tareas&lt;/p&gt;`
+        </code></pre>
+        <p class="note fragment" data-fragment-time="7">
+          La expresión puede ser una propiedad, una operación o cualquier valor JavaScript.
+          Si devuelve otro template <code>html</code>, lo anida.
+        </p>
+      </section>
+
+<!-- ESCENA 3 — Binding 2: Atributo  ======== -->
+      <section data-audio="audio/04/03-escena.mp3">
+        <h2>2 — Binding de atributo</h2>
+        <p class="scene-desc"><code>attr=${valor}</code> — sin comillas alrededor</p>
+        <pre><code class="language-typescript" data-trim data-line-numbers>
+html`&lt;input type="text" placeholder=${this.hint}&gt;`
+
+html`&lt;div class=${this.cssClass}&gt;`
+
+html`&lt;img src=${this.imageUrl} alt=${this.description}&gt;`
+        </code></pre>
+        <div class="callout fragment" data-fragment-time="2">
+          <p>Asigna el valor de la expresión a un atributo HTML.<br/>
+          Lit serializa el valor a string si es necesario.</p>
+        </div>
+        <p class="note fragment" data-fragment-time="15">
+          Funciona para cualquier atributo: <code>class</code>, <code>src</code>,
+          <code>href</code>, <code>placeholder</code>...
+        </p>
+      </section>
+
+<!-- ESCENA 4 — Binding 3: Propiedad ======== -->
+      <section data-audio="audio/04/04-escena.mp3">
+        <h2>3 — Binding de propiedad</h2>
+        <p class="scene-desc"><code>.prop=${valor}</code> — prefijo punto</p>
+        <pre><code class="language-typescript" data-trim data-line-numbers>
+html`&lt;input .value=${this.inputValue}&gt;`
+
+html`&lt;my-counter .step=${this.increment}&gt;`
+
+html`&lt;canvas .width=${600} .height=${400}&gt;`
+        </code></pre>
+        <div class="callout warning fragment" data-fragment-time="4">
+          <p>Asigna directamente a la <strong>propiedad JavaScript</strong> del elemento,
+          no al atributo HTML.<br/>
+          Un atributo siempre es string — una propiedad puede ser cualquier tipo.</p>
+        </div>
+        <p class="note fragment" data-fragment-time="17">
+          Úsalo para pasar objetos, arrays, números, o comunicarte con un Web Component hijo
+        </p>
+      </section>
+
+<!-- ESCENA 5 — Binding 4: Evento    ======== -->
+      <section data-audio="audio/04/05-escena.mp3">
+        <h2>4 — Binding de evento</h2>
+        <p class="scene-desc"><code>@evento=${handler}</code> — prefijo arroba</p>
+        <pre><code class="language-typescript" data-trim data-line-numbers>
+html`&lt;button @click=${this._handleClick}&gt;Enviar&lt;/button&gt;`
+
+html`&lt;input @input=${(e) =&gt; this._value = e.target.value}&gt;`
+
+html`&lt;form @submit=${this._onSubmit}&gt;`
+        </code></pre>
+        <p class="note fragment" data-fragment-time="1">
+          El nombre del evento sin el prefijo <code>on</code>:
+          <code>@click</code>, <code>@input</code>, <code>@submit</code>...
+        </p>
+        <div class="callout fragment" data-fragment-time="11">
+          <p>Lit gestiona el <code>addEventListener</code> y <code>removeEventListener</code>
+          automáticamente.<br/>
+          Al eliminar el componente del DOM, los listeners también se limpian.</p>
+        </div>
+      </section>
+
+<!-- ESCENA 6 — Binding 5: Booleano  ======== -->
+      <section data-audio="audio/04/06-escena.mp3">
+        <h2>5 — Binding booleano</h2>
+        <p class="scene-desc"><code>?attr=${bool}</code> — prefijo interrogación</p>
+        <pre><code class="language-typescript" data-trim data-line-numbers>
+html`&lt;button ?disabled=${!this.isValid}&gt;Guardar&lt;/button&gt;`
+
+html`&lt;details ?open=${this.expanded}&gt;`
+
+html`&lt;input ?required=${this.mandatory}&gt;`
+        </code></pre>
+        <div class="callout fragment" data-fragment-time="4">
+          <p>Si la expresión es <strong>verdadera</strong>: el atributo aparece sin valor (<code>disabled</code>, <code>required</code>...).<br/>
+          Si es <strong>falsa</strong>: el atributo desaparece por completo.</p>
+        </div>
+        <p class="note fragment" data-fragment-time="15">
+          Es la forma correcta de manejar atributos que en HTML funcionan por presencia o ausencia
+        </p>
+      </section>
+
+<!-- ESCENA 7 — Binding 6: Condicional  ======== -->
+      <section data-audio="audio/04/07-escena.mp3">
+        <h2>6 — Condicional con <code>nothing</code></h2>
+        <p class="scene-desc">Ternario JS + el valor especial <code>nothing</code></p>
+        <pre><code class="language-typescript" data-trim data-line-numbers
+          data-highlight-steps='[{"time":0,"lines":""},{"time":5,"lines":"3-7"},{"time":12,"lines":"1"},{"time":14,"lines":"1,9-10"}]'>
+import { nothing } from 'lit';
+
+// Ternario simple
+html`${this.isLoggedIn
+  ? html`&lt;p&gt;Bienvenido&lt;/p&gt;`
+  : html`&lt;p&gt;Inicia sesión&lt;/p&gt;`
+}`
+
+// Con nothing — no renderiza nada, ni comentario en el DOM
+html`${this.showBadge ? html`&lt;span class="badge"&gt;Nuevo&lt;/span&gt;` : nothing}`
+        </code></pre>
+        <div class="callout warning fragment" data-fragment-time="13">
+          <p><code>nothing</code> es más limpio que <code>''</code> o <code>null</code>:
+          no deja ningún nodo residual en el DOM.</p>
+        </div>
+      </section>
+
+<!-- ESCENA 8 — Binding 7: Listas    ======== -->
+      <section data-audio="audio/04/08-escena.mp3">
+        <h2>7 — Listas con <code>.map()</code></h2>
+        <p class="scene-desc">JavaScript puro dentro del template</p>
+        <pre><code class="language-typescript" data-trim data-line-numbers>
+html`
+  &lt;ul&gt;
+    ${this.items.map(item =&gt; html`
+      &lt;li&gt;${item.name}&lt;/li&gt;
+    `)}
+  &lt;/ul&gt;
+`
+        </code></pre>
+        <p class="note fragment" data-fragment-time="12">
+          No hay directiva especial: es <code>.map()</code> de JavaScript
+          devolviendo un template por cada elemento
+        </p>
+        <div class="callout fragment" data-fragment-time="17">
+          <p>Para listas grandes donde el rendimiento importa,
+          existe la directiva <code>repeat</code>.<br/>
+          Para la mayoría de casos, <code>map</code> es suficiente y más sencillo.</p>
+        </div>
+      </section>
+
+      <!-- ============================== -->
+      <!-- ESCENA 9 — my-task-list base   -->
+      <!-- ============================== -->
+      <section>
+        <section data-audio="audio/04/09-escena.mp3">
+          <h2>my-task-list.ts</h2>
+          <p class="scene-desc">Estructura base — interfaz y estado</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":3,"lines":"4-8"},{"time":8,"lines":"12-17,19-20"}]'>
+import { LitElement, html, css, nothing } from 'lit';
+import { customElement, state } from 'lit/decorators.js';
+
+interface Task {
+  id: number;
+  text: string;
+  done: boolean;
+}
+
+@customElement('my-task-list')
+export class MyTaskList extends LitElement {
+  @state()
+  private _tasks: Task[] = [
+    { id: 1, text: 'Aprender Lit', done: true },
+    { id: 2, text: 'Crear componentes', done: false },
+    { id: 3, text: 'Publicar la app', done: false },
+  ];
+
+  @state()
+  private _showDone = true;
+          </code></pre>
+        </section>
+
+<!-- ESCENA 10 — métodos             ======== -->
+        <section data-audio="audio/04/10-escena.mp3">
+          <h2>my-task-list.ts</h2>
+          <p class="scene-desc">Getter filtrado y método toggle</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":0.5,"lines":"1-5"},{"time":5,"lines":"7-11"}]'>
+  private get _visibleTasks() {
+    return this._showDone
+      ? this._tasks
+      : this._tasks.filter(t =&gt; !t.done);
+  }
+
+  private _toggle(id: number) {
+    this._tasks = this._tasks.map(t =&gt;
+      t.id === id ? { ...t, done: !t.done } : t
+    );
+  }
+          </code></pre>
+          <div class="callout warning fragment" data-fragment-time="7">
+            <p><strong>No mutar el array directamente.</strong><br/>
+            <code>this._tasks = this._tasks.map(...)</code> — reasignar la propiedad
+            para que Lit detecte el cambio comparando la referencia.</p>
+          </div>
+        </section>
+
+<!-- ESCENA 11 — render completo     ======== -->
+        <section data-audio="audio/04/11-escena.mp3">
+          <h2>my-task-list.ts</h2>
+          <p class="scene-desc">Render — los 7 bindings en acción</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":4,"lines":"2"},{"time":8,"lines":"6-8"},{"time":12,"lines":"7"},{"time":15,"lines":"15"},{"time":19,"lines":"16"},{"time":23,"lines":"11-18"},{"time":26,"lines":"20-22"}]'>
+  render() {
+    const pending = this._tasks.filter(t =&gt; !t.done).length;
+    return html`
+      &lt;h2&gt;Tareas &lt;span&gt;(${pending} pendientes)&lt;/span&gt;&lt;/h2&gt;
+      &lt;label&gt;
+        &lt;input type="checkbox" .checked=${this._showDone}
+          @change=${() =&gt; this._showDone = !this._showDone}&gt;
+        Mostrar completadas
+      &lt;/label&gt;
+      &lt;ul&gt;
+        ${this._visibleTasks.map(task =&gt; html`
+          &lt;li&gt;
+            &lt;input type="checkbox" .checked=${task.done}
+              @change=${() =&gt; this._toggle(task.id)}&gt;
+            &lt;span class=${task.done ? 'done' : ''}&gt;${task.text}&lt;/span&gt;
+            ${task.done ? html`&lt;small&gt;✓&lt;/small&gt;` : nothing}
+          &lt;/li&gt;
+        `)}
+      &lt;/ul&gt;
+      ${this._visibleTasks.length === 0
+        ? html`&lt;p&gt;&lt;em&gt;No hay tareas pendientes.&lt;/em&gt;&lt;/p&gt;`
+        : nothing}
+    `;
+  }
+          </code></pre>
+        </section>
+      </section>
+
+      <!-- ============================== -->
+      <!-- RESUMEN                        -->
+      <!-- ============================== -->
+      <section data-audio="audio/04/99-resumen.mp3">
+        <h2>Resumen — los 7 bindings</h2>
+        <ul>
+          <li class="fragment" data-fragment-time="1"><strong>Texto:</strong> <code>${expr}</code> — inserta valor como texto</li>
+          <li class="fragment" data-fragment-time="3.5"><strong>Atributo:</strong> <code>attr=${expr}</code> — asigna al atributo HTML como string</li>
+          <li class="fragment" data-fragment-time="7"><strong>Propiedad:</strong> <code>.prop=${expr}</code> — asigna a la propiedad JS (cualquier tipo)</li>
+          <li class="fragment" data-fragment-time="9"><strong>Evento:</strong> <code>@evento=${handler}</code> — enlaza un listener</li>
+          <li class="fragment" data-fragment-time="11"><strong>Booleano:</strong> <code>?attr=${bool}</code> — presencia o ausencia del atributo</li>
+          <li class="fragment" data-fragment-time="14"><strong>Condicional:</strong> ternario JS + <code>nothing</code> para no renderizar nada</li>
+          <li class="fragment" data-fragment-time="16"><strong>Lista:</strong> <code>.map()</code> para convertir arrays en templates</li>
+        </ul>
+        <div class="callout warning fragment" data-fragment-time="19" style="margin-top:0.5em;">
+          <p>Nunca mutar un array u objeto directamente — reasignar la propiedad para que Lit detecte el cambio</p>
+        </div>
+        <p class="note fragment" data-fragment-time="27" style="margin-top:0.5em;">
+          Siguiente paso: <strong>Eventos y comunicación entre componentes</strong>
+        </p>
+      </section>
+
+    </div>
+  </div>
+
+  <script type="module" src="/js/main.js"></script>
+</body>
+</html>

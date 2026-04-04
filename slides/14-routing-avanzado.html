@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>14 — Routing avanzado | Lit + Cells</title>
+  <link rel="stylesheet" href="/node_modules/reveal.js/dist/reveal.css" />
+  <link rel="stylesheet" href="/node_modules/reveal.js/dist/theme/night.css" />
+  <link rel="stylesheet" href="/node_modules/reveal.js/plugin/highlight/monokai.css" />
+  <link rel="stylesheet" href="/css/custom.css" />
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- ============================== -->
+      <!-- INTRO                          -->
+      <!-- ============================== -->
+      <section data-audio="audio/14/00-intro.mp3">
+        <h1>Routing avanzado</h1>
+        <h3>Paso 14 — Open Cells</h3>
+        <p class="subtitle">Parámetros dinámicos · Interceptor · Auth guard</p>
+      </section>
+
+<!-- ESCENA 1 — Ruta con parámetro   ======== -->
+      <section>
+        <section data-audio="audio/14/01-escena.mp3">
+          <h2>Rutas con parámetros dinámicos</h2>
+          <p class="scene-desc">Definir <code>:id</code> en el path</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers>
+startApp({
+  pages: [
+    { path: '/home',    name: 'home',    component: 'home-page',    ... },
+    { path: '/about',   name: 'about',   component: 'about-page',   ... },
+  ],
+  mainNode: 'app-content',
+});
+          </code></pre>
+          <p class="note fragment" data-fragment-time="8">Rutas estáticas que ya conocemos</p>
+        </section>
+
+        <section data-audio="audio/14/01b-escena.mp3">
+          <h2>Rutas con parámetros dinámicos</h2>
+          <p class="scene-desc">Añadimos la ruta de producto</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":1,"lines":"4-9"},{"time":2.5,"lines":"5"}]'>
+startApp({
+  pages: [
+    { path: '/home', name: 'home', component: 'home-page', ... },
+    {
+      path: '/product/:id',
+      name: 'product',
+      component: 'product-page',
+      action: () => import('./pages/product-page/product-page.js'),
+    },
+  ],
+  mainNode: 'app-content',
+});
+          </code></pre>
+          <div class="callout fragment" data-fragment-time="5">
+            <p><code>:id</code> — segmento dinámico de la URL<br/>
+            Puede ser cualquier valor: número, slug, UUID…</p>
+          </div>
+        </section>
+      </section>
+
+<!-- ESCENA 2 — Navegar con params   ======== -->
+      <section data-audio="audio/14/02-escena.mp3">
+        <h2>Navegar con parámetros</h2>
+        <p class="scene-desc">Segundo argumento de <code>navigate</code></p>
+        <pre><code class="language-typescript" data-trim data-line-numbers
+          data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"2"}]'>
+private goToProduct(id: string) {
+  this.pageController.navigate('product', { id });
+}
+        </code></pre>
+        <p class="note fragment" data-fragment-time="8">
+          Open Cells construye la URL automáticamente<br/>
+          El hash resultante: <code>#!/product/42</code>
+        </p>
+      </section>
+
+<!-- ESCENA 3 — Leer params          ======== -->
+      <section>
+        <section data-audio="audio/14/03-escena.mp3">
+          <h2>Leer parámetros en <code>onPageEnter</code></h2>
+          <p class="scene-desc">Parsear <code>window.location.hash</code></p>
+          <pre><code class="language-typescript large" data-trim data-line-numbers
+             data-highlight-steps='[{"time":0,"lines":""},{"time":3,"lines":"11-15"}]'>
+import { LitElement, html, css } from 'lit';
+import { customElement, state } from 'lit/decorators.js';
+import { PageController } from '@open-cells/page-controller';
+
+@customElement('product-page')
+export class ProductPage extends LitElement {
+  pageController = new PageController(this);
+
+  @state() productId: string = '';
+
+  onPageEnter() {
+    const hash = window.location.hash;
+    const parts = hash.replace('#!', '').split('/');
+    this.productId = parts[parts.length - 1] ?? '';
+  }
+
+  render() {
+    return html`
+      &lt;h1&gt;Producto ${this.productId}&lt;/h1&gt;
+    `;
+  }
+
+  static styles = css`:host { display: block; padding: 1rem; }`;
+}
+          </code></pre>
+        </section>
+
+        <section data-audio="audio/14/03b-escena.mp3">
+          <h2>Leer parámetros en <code>onPageEnter</code></h2>
+          <p class="scene-desc">El parse paso a paso</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"2"},{"time":5,"lines":"3"},{"time":8,"lines":"4"}]'>
+onPageEnter() {
+  const hash = window.location.hash;   // "#!/product/42"
+  const parts = hash.replace('#!', '').split('/');  // ["", "product", "42"]
+  this.productId = parts[parts.length - 1] ?? '';   // "42"
+}
+          </code></pre>
+          <div class="callout fragment" data-fragment-time="2">
+            <p>Open Cells usa <strong>hash-routing</strong><br/>
+            Toda la ruta vive en el fragmento de la URL<br/>
+            No hay servidor que la procese — todo ocurre en el cliente</p>
+          </div>
+        </section>
+      </section>
+
+<!-- ESCENA 4 — Interceptor          ======== -->
+      <section data-audio="audio/14/04-escena.mp3">
+        <h2>El interceptor</h2>
+        <p class="scene-desc">Auth guard que se ejecuta ANTES de cada navegación</p>
+        <div class="terminal">
+          <pre>
+Usuario navega  →  interceptor()  →  ¿permitir?
+                                         ↓ sí   →  página destino
+                                         ↓ no   →  redirect a login
+          </pre>
+        </div>
+        <p class="note fragment" data-fragment-time="5">
+          Recibe <code>navigation</code> (a dónde va) y <code>ctx</code> (contexto que tú controlas)<br/>
+          Devuelve si debe continuar o redirigir
+        </p>
+      </section>
+
+<!-- ESCENA 5 — Interceptor código   ======== -->
+      <section>
+        <section data-audio="audio/14/05-escena.mp3">
+          <h2>Definir el interceptor</h2>
+          <p class="scene-desc">Rutas públicas y guardia de autenticación</p>
+          <pre><code class="language-typescript large" data-trim data-line-numbers
+             data-highlight-steps='[{"time":0,"lines":""},{"time":1,"lines":"1"},{"time":7,"lines":"6-18"}]'>
+const PUBLIC_ROUTES = ['home', 'login', 'product'];
+
+startApp({
+  pages: [ /* ... */ ],
+  mainNode: 'app-content',
+  interceptor: (navigation, ctx) => {
+    const targetPage = navigation.to?.page || '';
+
+    if (PUBLIC_ROUTES.includes(targetPage)) {
+      return { intercept: false, redirect: '' };
+    }
+
+    if (!ctx.isAuthenticated) {
+      return { intercept: true, redirect: { page: 'login' } };
+    }
+
+    return { intercept: false, redirect: '' };
+  },
+});
+          </code></pre>
+        </section>
+
+        <section data-audio="audio/14/05b-escena.mp3">
+          <h2>Definir el interceptor</h2>
+          <p class="scene-desc">Lógica del guardia</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":1,"lines":"6-8"},{"time":7,"lines":"10-12"},{"time":12,"lines":"14"}]'>
+const PUBLIC_ROUTES = ['home', 'login', 'product'];
+
+interceptor: (navigation, ctx) => {
+  const targetPage = navigation.to?.page || '';
+
+  if (PUBLIC_ROUTES.includes(targetPage)) {
+    return { intercept: false, redirect: '' };
+  }
+
+  if (!ctx.isAuthenticated) {
+    return { intercept: true, redirect: { page: 'login' } };
+  }
+
+  return { intercept: false, redirect: '' };
+},
+          </code></pre>
+          <p class="note fragment" data-fragment-time="10">
+            1. Ruta pública → dejar pasar<br/>
+            2. No autenticado → redirigir al login<br/>
+            3. Autenticado → dejar pasar
+          </p>
+        </section>
+      </section>
+
+      <!-- ============================== -->
+      <!-- GOTCHA 1 — redirect objeto     -->
+      <!-- ============================== -->
+      <section data-audio="audio/14/06-escena.mp3">
+        <h2>GOTCHA — redirect es un objeto</h2>
+        <p class="scene-desc">Error muy común en runtime</p>
+        <pre><code class="language-typescript" data-trim data-line-numbers>
+// INCORRECTO — redirect como string:
+// return { intercept: true, redirect: 'login' };
+// Open Cells hace redirect.page → undefined
+// La navegación falla silenciosamente
+
+// CORRECTO — redirect debe ser un objeto con page:
+return { intercept: true, redirect: { page: 'login' } };
+        </code></pre>
+        <div class="callout warning fragment" data-fragment-time="8">
+          <p>Si el <code>redirect</code> es un string, el router intenta hacer<br/>
+          <code>redirect.page</code> y obtiene <code>undefined</code><br/>
+          La navegación falla sin ningún error visible</p>
+        </div>
+      </section>
+
+      <!-- ============================== -->
+      <!-- GOTCHA 2 — skipNavigations     -->
+      <!-- ============================== -->
+      <section data-audio="audio/14/07-escena.mp3">
+        <h2>GOTCHA — <code>skipNavigations</code> no evita el interceptor</h2>
+        <p class="scene-desc">Dos funciones completamente distintas</p>
+        <pre><code class="language-typescript" data-trim data-line-numbers
+          data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"7-9"},{"time":11,"lines":"10"}]'>
+startApp({
+  pages: [ /* ... */ ],
+  mainNode: 'app-content',
+  // skipNavigations controla el HISTORIAL de navegación,
+  // NO evita que el interceptor se ejecute.
+  // Formato: cada entrada es { from?, to? }
+  skipNavigations: [
+    { from: 'login', to: 'home' },
+  ],
+  interceptor: (navigation, ctx) => { /* ... */ },
+});
+        </code></pre>
+        <div class="callout warning fragment" data-fragment-time="7">
+          <p><code>skipNavigations</code> — esa transición no se añade al historial<br/>
+          (el botón atrás no regresará al login)<br/><br/>
+          El interceptor se ejecuta igualmente.<br/>
+          Para rutas públicas, el interceptor debe retornar <code>{ intercept: false }</code> explícitamente.</p>
+        </div>
+      </section>
+
+<!-- ESCENA — PUBLIC_ROUTES patrón   ======== -->
+      <section data-audio="audio/14/08-escena.mp3">
+        <h2>Patrón <code>PUBLIC_ROUTES</code></h2>
+        <p class="scene-desc">Centralizar las rutas que no requieren autenticación</p>
+        <pre><code class="language-typescript" data-trim data-line-numbers
+          data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"1"},{"time":6,"lines":"7-9"}]'>
+const PUBLIC_ROUTES = ['home', 'login', 'product'];
+
+startApp({
+  // ...
+  interceptor: (navigation, ctx) => {
+    const targetPage = navigation.to?.page || '';
+    if (PUBLIC_ROUTES.includes(targetPage)) {
+      return { intercept: false, redirect: '' };
+    }
+    // resto de la lógica de autenticación...
+    if (!ctx.isAuthenticated) {
+      return { intercept: true, redirect: { page: 'login' } };
+    }
+    return { intercept: false, redirect: '' };
+  },
+});
+        </code></pre>
+        <p class="note fragment" data-fragment-time="9">
+          Un solo array controla qué páginas son públicas<br/>
+          Fácil de ampliar sin tocar la lógica del interceptor
+        </p>
+      </section>
+
+<!-- ESCENA — Contexto interceptor   ======== -->
+      <section>
+        <section data-audio="audio/14/09-escena.mp3">
+          <h2><code>updateInterceptorContext</code></h2>
+          <p class="scene-desc">Actualizar el contexto desde cualquier página</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers>
+import {
+  updateInterceptorContext,
+  getInterceptorContext
+} from '@open-cells/core';
+
+// Al hacer login exitoso:
+private handleLogin() {
+  updateInterceptorContext({ isAuthenticated: true });
+  this.pageController.navigate('home');
+}
+
+// Para comprobar el estado actual:
+private checkAuth() {
+  const ctx = getInterceptorContext();
+  console.log('Autenticado:', ctx.isAuthenticated);
+}
+          </code></pre>
+        </section>
+
+        <section data-audio="audio/14/09b-escena.mp3">
+          <h2>Login y página protegida</h2>
+          <p class="scene-desc">Implementación mínima</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers>
+@customElement('login-page')
+export class LoginPage extends LitElement {
+  pageController = new PageController(this);
+
+  private handleLogin() {
+    updateInterceptorContext({ isAuthenticated: true });
+    this.pageController.navigate('protected');
+  }
+
+  render() {
+    return html`
+      &lt;h1&gt;Login&lt;/h1&gt;
+      &lt;button @click=${this.handleLogin}&gt;Entrar&lt;/button&gt;
+    `;
+  }
+}
+          </code></pre>
+          <p class="note fragment" data-fragment-time="8">
+            La página protegida no necesita lógica especial —<br/>
+            el interceptor ya la protege automáticamente
+          </p>
+        </section>
+      </section>
+
+      <!-- ============================== -->
+      <!-- RESUMEN                        -->
+      <!-- ============================== -->
+      <section data-audio="audio/14/99-resumen.mp3">
+        <h2>Resumen</h2>
+        <div class="file-tree">
+          <pre>
+Rutas dinámicas
+  path: '/product/:id'        → dos puntos = parámetro
+  navigate('product', { id }) → segundo argumento
+  onPageEnter()               → parsear window.location.hash
+
+Interceptor
+  interceptor: (navigation, ctx) → se ejecuta ANTES de navegar
+  PUBLIC_ROUTES                  → array de rutas sin guardia
+  redirect: { page: 'login' }    → OBJETO, no string
+
+Contexto
+  updateInterceptorContext({ isAuthenticated: true })
+  getInterceptorContext()
+          </pre>
+        </div>
+        <p class="note fragment" data-fragment-time="22" style="margin-top:1em;">
+          Siguiente paso: <strong>Estado compartido con Channels</strong>
+        </p>
+      </section>
+
+    </div>
+  </div>
+
+  <script type="module" src="/js/main.js"></script>
+</body>
+</html>

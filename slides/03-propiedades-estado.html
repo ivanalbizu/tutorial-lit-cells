@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>03 — Propiedades y estado | Lit + Cells</title>
+  <link rel="stylesheet" href="/node_modules/reveal.js/dist/reveal.css" />
+  <link rel="stylesheet" href="/node_modules/reveal.js/dist/theme/night.css" />
+  <link rel="stylesheet" href="/node_modules/reveal.js/plugin/highlight/monokai.css" />
+  <link rel="stylesheet" href="/css/custom.css" />
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- ============================== -->
+      <!-- INTRO                          -->
+      <!-- ============================== -->
+      <section data-audio="audio/03/00-intro.mp3">
+        <h1>Lit + Cells</h1>
+        <h3>Paso 3 — Propiedades y estado reactivo</h3>
+        <p class="subtitle">@property vs @state · tipos · reflect</p>
+      </section>
+
+<!-- ESCENA 1 — Concepto             ======== -->
+      <section data-audio="audio/03/01-escena.mp3">
+        <h2>Pública vs privada</h2>
+        <p class="scene-desc">La diferencia conceptual entre <code>@property</code> y <code>@state</code></p>
+        <div style="display:flex; gap:2rem; justify-content:center; align-items:center; margin-top:1rem;">
+          <div class="callout" style="flex:1;">
+            <p><strong>@property</strong></p>
+            <p>El mundo exterior puede leerla y modificarla:</p>
+            <p>Atributos HTML, JavaScript externo, componentes padre</p>
+          </div>
+          <div class="callout" style="flex:1; border-color:#f0a500;">
+            <p><strong>@state</strong></p>
+            <p>Solo el propio componente la conoce y modifica</p>
+            <p>Estado interno, privado</p>
+          </div>
+        </div>
+        <div class="callout fragment" data-fragment-time="22" style="margin-top:1.5rem;">
+          <p>Ambas disparan un <strong>re-render automático</strong> al cambiar. Esa es la reactividad de Lit.</p>
+        </div>
+      </section>
+
+      <!-- ============================== -->
+      <!-- ESCENA 2 — my-counter imports  -->
+      <!-- ============================== -->
+      <section>
+        <section data-audio="audio/03/02-escena.mp3">
+          <h2>my-counter.ts</h2>
+          <p class="scene-desc">Imports — añadimos <code>state</code></p>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":3,"lines":"2"}]'>
+import { LitElement, html, css } from 'lit';
+import { customElement, property, state } from 'lit/decorators.js';
+          </code></pre>
+          <p class="note fragment" data-fragment-time="6">
+            <code>property</code> y <code>state</code> son dos decoradores distintos
+            con comportamientos distintos
+          </p>
+        </section>
+
+<!-- ESCENA 3 — @property Number     ======== -->
+        <section data-audio="audio/03/03-escena.mp3">
+          <h2>my-counter.ts</h2>
+          <p class="scene-desc">Propiedades públicas — tipos primitivos</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":3,"lines":"4-5"},{"time":7,"lines":"7-8"}]'>
+@customElement('my-counter')
+export class MyCounter extends LitElement {
+
+  @property({ type: String })
+  label = 'Contador';
+
+  @property({ type: Number })
+  step = 1;
+
+}
+          </code></pre>
+          <div class="callout warning fragment" data-fragment-time="11">
+            <p><code>type: Number</code> — cuando el HTML pone <code>step="2"</code>,
+            el atributo llega como string <code>"2"</code>.<br/>
+            Lit lo convierte a número <code>2</code> automáticamente.</p>
+          </div>
+        </section>
+
+<!-- ESCENA 4 — @state               ======== -->
+        <section data-audio="audio/03/04-escena.mp3">
+          <h2>my-counter.ts</h2>
+          <p class="scene-desc">Estado interno con <code>@state</code></p>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":0.5,"lines":"10-11"}]'>
+@customElement('my-counter')
+export class MyCounter extends LitElement {
+
+  @property({ type: String })
+  label = 'Contador';
+
+  @property({ type: Number })
+  step = 1;
+
+  @state()
+  private _count = 0;
+
+}
+          </code></pre>
+          <p class="note fragment" data-fragment-time="1">
+            El prefijo <code>_</code> señala que es privado por convención
+          </p>
+          <div class="callout fragment" data-fragment-time="7">
+            <p>El valor del contador es estado interno: nadie fuera del componente
+            debería poder cambiarlo directamente.</p>
+          </div>
+        </section>
+
+<!-- ESCENA 5 — métodos y render     ======== -->
+        <section data-audio="audio/03/05-escena.mp3">
+          <h2>my-counter.ts</h2>
+          <p class="scene-desc">Métodos y <code>render()</code></p>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":1,"lines":"10,12"},{"time":4,"lines":"10,12,3-4"},{"time":9,"lines":"10-12,3-4,6,15"}]'>
+  // ... propiedades anteriores ...
+
+  private _increment() { this._count += this.step; }
+  private _decrement() { this._count -= this.step; }
+
+  render() {
+    return html`
+      &lt;p&gt;${this.label}&lt;/p&gt;
+      &lt;div class="counter"&gt;
+        &lt;button @click=${this._decrement}&gt;-&lt;/button&gt;
+        &lt;span&gt;${this._count}&lt;/span&gt;
+        &lt;button @click=${this._increment}&gt;+&lt;/button&gt;
+      &lt;/div&gt;
+    `;
+  }
+          </code></pre>
+          <p class="note fragment" data-fragment-time="1">
+            <code>@click=${this._decrement}</code> — cuando cambia <code>_count</code>
+            (<code>@state</code>), Lit re-renderiza solo el <code>&lt;span&gt;</code>
+          </p>
+        </section>
+      </section>
+
+<!-- ESCENA 6 — Boolean y reflect    ======== -->
+      <section>
+        <section data-audio="audio/03/06-escena.mp3">
+          <h2>my-user-card.ts</h2>
+          <p class="scene-desc">Tipos: String, Number, Boolean + reflect</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":7,"lines":"4-5"},{"time":8.5,"lines":"7-8"},{"time":10,"lines":"10-11"},{"time":36,"lines":"13-14"}]'>
+@customElement('my-user-card')
+export class MyUserCard extends LitElement {
+
+  @property({ type: String })
+  name = 'Anonimo';
+
+  @property({ type: Number })
+  age = 0;
+
+  @property({ type: Boolean, reflect: true })
+  active = false;
+
+  @state()
+  private _showDetails = false;
+
+}
+          </code></pre>
+          <div class="callout warning fragment" data-fragment-time="12">
+            <p><code>reflect: true</code> en el booleano: cuando <code>active</code> es true,
+            el atributo <code>active</code> aparece en el elemento HTML.<br/>
+            Permite seleccionarlo con CSS desde fuera: <code>[active] { ... }</code></p>
+          </div>
+        </section>
+
+<!-- ESCENA 7 — host([active])       ======== -->
+        <section data-audio="audio/03/07-escena.mp3">
+          <h2>my-user-card.ts</h2>
+          <p class="scene-desc">Aprovechando <code>reflect</code> en los estilos</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"4"}]'>
+  static styles = css`
+    :host { display: block; border: 1px solid #ccc;
+            padding: 1rem; border-radius: 8px; max-width: 300px; }
+    :host([active]) { border-color: #646cff; }
+    button { margin-top: 0.5rem; cursor: pointer; }
+  `;
+          </code></pre>
+          <div class="callout fragment" data-fragment-time="6">
+            <p><code>:host([active])</code> — aprovecha que <code>active</code> tiene
+            <code>reflect: true</code>:<br/>
+            cuando la propiedad es <code>true</code>, el selector captura el elemento
+            y cambia el borde a morado.</p>
+          </div>
+        </section>
+
+        <!-- ============================== -->
+        <!-- ESCENA 8 — render user-card    -->
+        <!-- ============================== -->
+        <section data-audio="audio/03/08-escena.mp3">
+          <h2>my-user-card.ts</h2>
+          <p class="scene-desc">Render — combinando todos los tipos</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":3,"lines":"3"},{"time":6,"lines":"4"},{"time":10,"lines":"5-7"},{"time":16,"lines":"8-10"}]'>
+  render() {
+    return html`
+      &lt;h3&gt;${this.name}&lt;/h3&gt;
+      &lt;span&gt;${this.active ? 'Activo' : 'Inactivo'}&lt;/span&gt;
+      &lt;button @click=${() => this._showDetails = !this._showDetails}&gt;
+        ${this._showDetails ? 'Ocultar' : 'Ver detalles'}
+      &lt;/button&gt;
+      ${this._showDetails
+        ? html`&lt;p&gt;Edad: ${this.age}&lt;/p&gt;`
+        : ''}
+    `;
+  }
+          </code></pre>
+          <p class="note fragment" data-fragment-time="13">
+            <code>@state</code> <code>_showDetails</code> controla la visibilidad interna
+            sin exponer nada al exterior
+          </p>
+        </section>
+      </section>
+
+<!-- ESCENA 9 — Uso en HTML          ======== -->
+      <section data-audio="audio/03/09-escena.mp3">
+        <h2>Usar los componentes</h2>
+        <p class="scene-desc">index.html — atributos HTML y tipos automáticos</p>
+        <pre><code class="language-html" data-trim data-line-numbers
+          data-highlight-steps='[{"time":0,"lines":""},{"time":3,"lines":"1"},{"time":8,"lines":"2"},{"time":14,"lines":"3"}]'>
+&lt;my-counter label="Pasos" step="5"&gt;&lt;/my-counter&gt;
+&lt;my-user-card name="Ana García" age="28" active&gt;&lt;/my-user-card&gt;
+&lt;my-user-card name="Luis Pérez" age="35"&gt;&lt;/my-user-card&gt;
+        </code></pre>
+        <p class="note fragment" data-fragment-time="5">
+          <code>step="5"</code> — Lit convierte el string <code>"5"</code>
+          al número <code>5</code> (<code>type: Number</code>)
+        </p>
+        <div class="callout fragment" data-fragment-time="8">
+          <p>Boolean attribute: <code>active</code> sin valor = <code>true</code>.<br/>
+          Sin el atributo = <code>false</code>.</p>
+        </div>
+      </section>
+
+<!-- ESCENA 10 — Reactividad live    ======== -->
+      <section data-audio="audio/03/10-escena.mp3">
+        <h2>Reactividad en tiempo real</h2>
+        <p class="scene-desc">DevTools &gt; Console</p>
+        <pre><code class="language-javascript" data-trim data-line-numbers>
+// Cambiar step del contador en tiempo real
+document.querySelector('my-counter').step = 10;
+
+// Activar la segunda tarjeta por código
+document.querySelector('my-user-card').active = true;
+        </code></pre>
+        <p class="note fragment" data-fragment-time="4">
+          Sin recargar la página — Lit detecta el cambio en la propiedad
+          y re-renderiza automáticamente
+        </p>
+      </section>
+
+      <!-- ============================== -->
+      <!-- RESUMEN                        -->
+      <!-- ============================== -->
+      <section data-audio="audio/03/99-resumen.mp3">
+        <h2>Resumen</h2>
+        <ul>
+          <li class="fragment" data-fragment-time="1"><code>@property()</code> — propiedad pública, modificable desde fuera</li>
+          <li class="fragment" data-fragment-time="7"><code>@state()</code> — estado privado, solo interno</li>
+          <li class="fragment" data-fragment-time="11">Ambas disparan re-render automático al cambiar</li>
+          <li class="fragment" data-fragment-time="15"><code>type: Number / Boolean</code> — convierte atributos HTML al tipo JS correcto</li>
+          <li class="fragment" data-fragment-time="20"><code>reflect: true</code> — sincroniza propiedad → atributo, útil para selectores CSS</li>
+          <li class="fragment" data-fragment-time="28">Boolean en HTML: presente = <code>true</code>, ausente = <code>false</code></li>
+        </ul>
+        <p class="note fragment" data-fragment-time="33" style="margin-top:1em;">
+          Siguiente paso: <strong>Templates y los 7 tipos de binding</strong>
+        </p>
+      </section>
+
+    </div>
+  </div>
+
+  <script type="module" src="/js/main.js"></script>
+</body>
+</html>
