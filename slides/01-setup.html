@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>01 — Setup del proyecto | Lit + Cells</title>
+  <link rel="stylesheet" href="/node_modules/reveal.js/dist/reveal.css" />
+  <link rel="stylesheet" href="/node_modules/reveal.js/dist/theme/night.css" />
+  <link rel="stylesheet" href="/node_modules/reveal.js/plugin/highlight/monokai.css" />
+  <link rel="stylesheet" href="/css/custom.css" />
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- ============================== -->
+      <!-- INTRO                          -->
+      <!-- ============================== -->
+      <section data-audio="audio/01/00-intro.mp3">
+        <h1>Lit + Cells</h1>
+        <h3>Paso 1 — Setup del proyecto</h3>
+        <p class="subtitle">Vite + Lit + TypeScript</p>
+      </section>
+
+<!-- ESCENA 1 — package.json         ======== -->
+      <section>
+        <section data-audio="audio/01/01-escena.mp3">
+          <h2>package.json</h2>
+          <p class="scene-desc">Configuración base del proyecto</p>
+          <pre><code class="language-json" data-trim data-line-numbers>
+{
+  "name": "tutorial-lit",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module"
+}
+          </code></pre>
+          <p class="note fragment" data-fragment-time="3">
+            <code>"type": "module"</code> — ES Modules nativos
+          </p>
+        </section>
+
+        <section data-audio="audio/01/01b-escena.mp3">
+          <h2>package.json</h2>
+          <p class="scene-desc">Añadimos scripts</p>
+          <pre><code class="language-json" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"6-10"}]'>
+{
+  "name": "tutorial-lit",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  }
+}
+          </code></pre>
+          <p class="note fragment" data-fragment-time="3">
+            <strong>dev</strong> — Vite dev server con HMR<br/>
+            <strong>build</strong> — TypeScript + Rollup para producción<br/>
+            <strong>preview</strong> — previsualizar el build
+          </p>
+        </section>
+
+        <section data-audio="audio/01/01c-escena.mp3">
+          <h2>package.json</h2>
+          <p class="scene-desc">Añadimos dependencias</p>
+          <pre><code class="language-json" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"11-13"},{"time":8,"lines":"11-17"}]'>
+{
+  "name": "tutorial-lit",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "lit": "^3.2.0"
+  },
+  "devDependencies": {
+    "typescript": "~5.6.0",
+    "vite": "^6.0.0"
+  }
+}
+          </code></pre>
+          <p class="note fragment" data-fragment-time="2">
+            Solo 3 paquetes: <strong>lit</strong> (runtime),
+            <strong>typescript</strong> y <strong>vite</strong> (dev)
+          </p>
+        </section>
+      </section>
+
+<!-- ESCENA 2 — tsconfig.json        ======== -->
+      <section>
+        <section data-audio="audio/01/02-escena.mp3">
+          <h2>tsconfig.json</h2>
+          <p class="scene-desc">Configuración de TypeScript</p>
+          <pre><code class="language-json" data-trim data-line-numbers>
+{
+  "compilerOptions": {
+    "target": "ES2021",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2021", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["src"]
+}
+          </code></pre>
+          <p class="note fragment" data-fragment-time="5">Configuración estándar de TypeScript</p>
+        </section>
+
+        <section data-audio="audio/01/02b-escena.mp3">
+          <h2>tsconfig.json</h2>
+          <p class="scene-desc">Las dos opciones críticas para Lit</p>
+          <pre><code class="language-json" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":3,"lines":"12"},{"time":14,"lines":"11"}]'>
+{
+  "compilerOptions": {
+    "target": "ES2021",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2021", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "useDefineForClassFields": false,
+    "experimentalDecorators": true,
+    "declaration": true,
+    "sourceMap": true,
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "include": ["src"]
+}
+          </code></pre>
+          <div class="callout fragment" data-fragment-time="3">
+            <p><code>experimentalDecorators: true</code><br/>
+            Lit usa <code>@customElement</code>, <code>@property</code>...</p>
+          </div>
+          <div class="callout warning fragment" data-fragment-time="14">
+            <p><code>useDefineForClassFields: false</code><br/>
+            Sin esto, las propiedades reactivas NO funcionan</p>
+          </div>
+        </section>
+      </section>
+
+<!-- ESCENA 3 — vite.config.ts       ======== -->
+      <section data-audio="audio/01/03-escena.mp3">
+        <h2>vite.config.ts</h2>
+        <p class="scene-desc">Configuración mínima de Vite</p>
+        <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":3,"lines":"6"},{"time":7,"lines":"6-7"},{"time":9,"lines":"6-7,10"}]'>
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+  build: {
+    lib: {
+      entry: 'src/index.ts',
+      formats: ['es'],
+    },
+    rollupOptions: {
+      external: /^lit/,
+    },
+  },
+});
+        </code></pre>
+        <p class="note fragment" data-fragment-time="5">
+          <code>external: /^lit/</code> — no incluir Lit en el bundle de producción
+        </p>
+      </section>
+
+<!-- ESCENA 4 — index.html           ======== -->
+      <section data-audio="audio/01/04-escena.mp3">
+        <h2>index.html</h2>
+        <p class="scene-desc">Punto de entrada — Vite lo usa directamente</p>
+        <pre><code class="language-html" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":3,"lines":"21"}]'>
+&lt;!DOCTYPE html&gt;
+&lt;html lang="es"&gt;
+  &lt;head&gt;
+    &lt;meta charset="UTF-8" /&gt;
+    &lt;meta name="viewport"
+      content="width=device-width, initial-scale=1.0" /&gt;
+    &lt;title&gt;Tutorial Lit&lt;/title&gt;
+    &lt;style&gt;
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 0;
+        padding: 2rem;
+        background: #1a1a2e;
+        color: #eee;
+      }
+    &lt;/style&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;h1&gt;Tutorial Lit + Cells&lt;/h1&gt;
+
+    &lt;script type="module" src="/src/index.ts"&gt;&lt;/script&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+        </code></pre>
+        <div class="callout fragment" data-fragment-time="4">
+          <p><code>type="module"</code> + archivo <code>.ts</code> directo<br/>
+          Vite compila TypeScript al vuelo</p>
+        </div>
+      </section>
+
+<!-- ESCENA 5 — src/index.ts         ======== -->
+      <section data-audio="audio/01/05-escena.mp3">
+        <h2>src/index.ts</h2>
+        <p class="scene-desc">Punto de entrada del código</p>
+        <pre><code class="language-typescript" data-trim>
+console.log('Lit tutorial project is ready!');
+        </code></pre>
+        <p class="note fragment" data-fragment-time="3">
+          Aquí iremos importando los componentes que creemos
+        </p>
+      </section>
+
+<!-- ESCENA 6 — Resultado            ======== -->
+      <section data-audio="audio/01/06-escena.mp3">
+        <h2>Resultado</h2>
+        <p class="scene-desc"><code>npm run dev</code></p>
+        <div class="terminal">
+          <pre>
+  VITE v6.0.0  ready in 180ms
+
+  > Local:   http://localhost:5173/
+  > Network: use --host to expose
+          </pre>
+        </div>
+        <div class="browser-preview fragment" data-fragment-time="5">
+          <div class="browser-bar">localhost:5173</div>
+          <div class="browser-content">
+            <h1 style="color:#eee;font-size:1.2em;">Tutorial Lit + Cells</h1>
+            <p style="color:#888;font-size:0.8em;">Consola: Lit tutorial project is ready!</p>
+          </div>
+        </div>
+        <p class="note fragment" data-fragment-time="10">
+          HMR activo — cualquier cambio se refleja al instante
+        </p>
+      </section>
+
+      <!-- ============================== -->
+      <!-- RESUMEN                        -->
+      <!-- ============================== -->
+      <section data-audio="audio/01/99-resumen.mp3">
+        <h2>Resumen</h2>
+        <div class="file-tree">
+          <pre>
+tutorial-lit/
+  package.json        3 dependencias
+  tsconfig.json       decoradores + classFields
+  vite.config.ts      config mínima
+  index.html          punto de entrada
+  src/
+    index.ts          nuestro código
+          </pre>
+        </div>
+        <p class="note fragment" data-fragment-time="25" style="margin-top:1em;">
+          Siguiente paso: <strong>Primer componente con Lit</strong>
+        </p>
+      </section>
+
+    </div>
+  </div>
+
+  <script type="module" src="/js/main.js"></script>
+</body>
+</html>

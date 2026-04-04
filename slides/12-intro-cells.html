@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>12 — Introducción a Open Cells | Lit + Cells</title>
+  <link rel="stylesheet" href="/node_modules/reveal.js/dist/reveal.css" />
+  <link rel="stylesheet" href="/node_modules/reveal.js/dist/theme/night.css" />
+  <link rel="stylesheet" href="/node_modules/reveal.js/plugin/highlight/monokai.css" />
+  <link rel="stylesheet" href="/css/custom.css" />
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- ============================== -->
+      <!-- INTRO                          -->
+      <!-- ============================== -->
+      <section data-audio="audio/12/00-intro.mp3">
+        <h1>Open Cells</h1>
+        <h3>Paso 12 — Scaffold de una app desde cero</h3>
+        <p class="subtitle">Routing · Orquestación · Estado · Lazy loading</p>
+      </section>
+
+<!-- ESCENA 1 — Qué es Open Cells   ======== -->
+      <section data-audio="audio/12/01-escena.mp3">
+        <h2>¿Qué hace Open Cells?</h2>
+        <p class="scene-desc">Cuatro responsabilidades principales</p>
+        <div class="callout fragment" data-fragment-index="1" data-fragment-time="3">
+          <p><strong>Routing</strong> — usa hash en la URL (<code>#/home</code>, <code>#/about</code>) para determinar qué página mostrar.</p>
+        </div>
+        <div class="callout fragment" data-fragment-index="2" data-fragment-time="9">
+          <p><strong>Orquestación de páginas</strong> — gestiona qué página está activa, cuáles están en caché y cuáles inactivas.</p>
+        </div>
+        <div class="callout fragment" data-fragment-index="3" data-fragment-time="17">
+          <p><strong>Estado compartido</strong> — canales de comunicación entre páginas sin dependencias directas.</p>
+        </div>
+        <div class="callout fragment" data-fragment-index="4" data-fragment-time="26">
+          <p><strong>Lazy loading</strong> — las páginas se descargan bajo demanda, solo cuando se visitan por primera vez.</p>
+        </div>
+        <p class="note fragment" data-fragment-index="5" data-fragment-time="34">
+          Cada página es un <strong>Web Component</strong> independiente. Open Cells no sabe nada de ningún framework.
+        </p>
+      </section>
+
+<!-- ESCENA 2 — Estructura           ======== -->
+      <section data-audio="audio/12/02-escena.mp3">
+        <h2>Estructura de carpetas</h2>
+        <p class="scene-desc">Organización del proyecto</p>
+        <div class="file-tree">
+          <pre>
+cells-app/
+├── index.html
+├── package.json
+├── tsconfig.json
+├── vite.config.ts
+└── src/
+    ├── components/
+    │   └── app-index.ts      bootstrap
+    ├── router/
+    │   └── routes.ts         definición de rutas
+    ├── pages/
+    │   ├── home/
+    │   │   └── home-page.ts
+    │   └── about/
+    │       └── about-page.ts
+    └── css/
+        └── main.css
+          </pre>
+        </div>
+        <p class="note fragment" data-fragment-time="7">
+          Una carpeta por página dentro de <code>pages/</code>: fácil de escalar con docenas de páginas.
+        </p>
+      </section>
+
+<!-- ESCENA 3 — package.json         ======== -->
+      <section data-audio="audio/12/03-escena.mp3">
+        <h2>package.json</h2>
+        <p class="scene-desc">Dependencias del proyecto</p>
+        <pre><code class="language-json large" data-trim data-line-numbers
+          data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"12-14"}]'>
+{
+  "name": "cells-app",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc &amp;&amp; vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@open-cells/core": "^1.0.0",
+    "@open-cells/page-controller": "^1.0.0",
+    "lit": "^3.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "vite": "^5.0.0"
+  }
+}
+        </code></pre>
+        <div class="callout fragment" data-fragment-time="3">
+          <p><code>@open-cells/core</code> — router y sistema de canales.<br/>
+          <code>@open-cells/page-controller</code> — Reactive Controller para páginas.</p>
+        </div>
+      </section>
+
+<!-- ESCENA 4 — index.html           ======== -->
+      <section data-audio="audio/12/04-escena.mp3">
+        <h2>index.html — el nodo contenedor</h2>
+        <p class="scene-desc">mainNode: donde Cells monta las páginas</p>
+        <pre><code class="language-html" data-trim data-line-numbers
+          data-highlight-steps='[{"time":0,"lines":""},{"time":3,"lines":"10"}]'>
+&lt;!DOCTYPE html&gt;
+&lt;html lang="es"&gt;
+  &lt;head&gt;
+    &lt;meta charset="UTF-8" /&gt;
+    &lt;meta name="viewport"
+      content="width=device-width, initial-scale=1.0" /&gt;
+    &lt;link rel="stylesheet" href="/src/css/main.css" /&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;div id="app-content"&gt;&lt;/div&gt;
+    &lt;script type="module"
+      src="/src/components/app-index.ts"&gt;&lt;/script&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+        </code></pre>
+        <div class="callout warning fragment" data-fragment-time="7">
+          <p>El <code>id="app-content"</code> debe coincidir <strong>exactamente</strong> con el valor de <code>mainNode</code> en <code>startApp</code>.</p>
+        </div>
+      </section>
+
+<!-- ESCENA 5 — CSS OBLIGATORIO      ======== -->
+      <section>
+        <section data-audio="audio/12/05-escena.mp3">
+          <h2>CSS obligatorio para visibilidad</h2>
+          <p class="scene-desc">src/css/main.css</p>
+          <pre><code class="language-css" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"9-13"}]'>
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body { margin: 0; font-family: sans-serif; }
+
+/* Open Cells añade el atributo state a cada página */
+#app-content > [state="cached"],
+#app-content > [state="inactive"] {
+  display: none;
+}
+          </code></pre>
+        </section>
+
+        <section data-audio="audio/12/05b-escena.mp3">
+          <h2>El atributo state</h2>
+          <p class="scene-desc">Tres valores posibles</p>
+          <div class="callout fragment" data-fragment-index="1" data-fragment-time="3">
+            <p><code>state="active"</code> — página visible actualmente.</p>
+          </div>
+          <div class="callout fragment" data-fragment-index="2" data-fragment-time="6.5">
+            <p><code>state="cached"</code> — página visitada, en DOM pero oculta.</p>
+          </div>
+          <div class="callout fragment" data-fragment-index="3" data-fragment-time="10">
+            <p><code>state="inactive"</code> — página que superó el límite de caché, se elimina del DOM.</p>
+          </div>
+          <div class="callout warning fragment" data-fragment-index="4" data-fragment-time="16">
+            <p>Open Cells <strong>NO incluye</strong> el CSS para ocultar páginas. Si lo omites, todas las páginas se apilan visibles al mismo tiempo.</p>
+          </div>
+        </section>
+      </section>
+
+<!-- ESCENA 6 — Rutas                ======== -->
+      <section>
+        <section data-audio="audio/12/06-escena.mp3">
+          <h2>Definición de rutas</h2>
+          <p class="scene-desc">src/router/routes.ts</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers>
+import { AppRoute } from '@open-cells/core/types';
+
+export const routes: AppRoute[] = [
+  {
+    path: '/',
+    name: 'home',
+    component: 'home-page',
+    action: () => import('../pages/home/home-page.js'),
+  },
+  {
+    path: '/about',
+    name: 'about',
+    component: 'about-page',
+    action: () => import('../pages/about/about-page.js'),
+  },
+];
+          </code></pre>
+        </section>
+
+        <section data-audio="audio/12/06b-escena.mp3">
+          <h2>Campos de cada ruta</h2>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":1,"lines":"5"},{"time":9,"lines":"4"},{"time":14,"lines":""}]'>
+  {
+    path: '/',           // fragmento de URL (sin #)
+    name: 'home',        // identificador para navegar
+    component: 'home-page', // nombre del custom element
+    action: () => import('../pages/home/home-page.js'),
+    // ↑ import dinámico — habilita lazy loading
+  },
+          </code></pre>
+          <div class="callout fragment" data-fragment-time="1">
+            <p><code>action</code> solo se ejecuta la primera vez que el usuario navega a esa ruta. El módulo se descarga bajo demanda.</p>
+          </div>
+          <p class="note fragment" data-fragment-time="9">
+            El nombre del custom element en <code>component</code> debe coincidir con el argumento de <code>@customElement</code> en la clase.
+          </p>
+        </section>
+      </section>
+
+<!-- ESCENA 7 — startApp             ======== -->
+      <section data-audio="audio/12/07-escena.mp3">
+        <h2>Bootstrap con startApp</h2>
+        <p class="scene-desc">src/components/app-index.ts</p>
+        <pre><code class="language-typescript" data-trim data-line-numbers>
+import { startApp } from '@open-cells/core';
+import { routes } from '../router/routes.js';
+
+startApp({
+  routes,
+  mainNode: 'app-content',
+});
+        </code></pre>
+        <p class="note fragment" data-fragment-time="3">
+          Dos líneas bastan para arrancar Open Cells. Escucha los cambios de hash y carga el componente correspondiente.
+        </p>
+        <div class="callout fragment" data-fragment-time="18">
+          <p>Opciones adicionales: <code>viewLimit</code> controla cuántas páginas se mantienen en el DOM (por defecto <strong>3</strong>). <code>persistentPages</code> excluye páginas del límite de caché.</p>
+        </div>
+      </section>
+
+<!-- ESCENA 8 — Páginas              ======== -->
+      <section>
+        <section data-audio="audio/12/08-escena.mp3">
+          <h2>Las páginas son componentes Lit</h2>
+          <p class="scene-desc">src/pages/home/home-page.ts</p>
+          <pre><code class="language-typescript large" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":11,"lines":"4"}]'>
+import { LitElement, html, css } from 'lit';
+import { customElement } from 'lit/decorators.js';
+
+@customElement('home-page') // coincide con routes.ts
+export class HomePage extends LitElement {
+  static styles = css`
+    :host { display: block; padding: 2rem; }
+    h1 { color: #1a1a2e; }
+  `;
+
+  render() {
+    return html`
+      &lt;h1&gt;Bienvenido a Cells App&lt;/h1&gt;
+      &lt;p&gt;Esta es la página de inicio.&lt;/p&gt;
+      &lt;a href="#/about"&gt;Ir a About&lt;/a&gt;
+    `;
+  }
+}
+          </code></pre>
+          <p class="note fragment" data-fragment-time="3">
+            Las páginas son Web Components normales. No hay ninguna clase base especial que deban extender.
+          </p>
+        </section>
+
+        <section data-audio="audio/12/08b-escena.mp3">
+          <h2>Navegación con enlaces hash</h2>
+          <pre><code class="language-html" data-trim data-line-numbers>
+&lt;!-- Navegación declarativa: href con hash --&gt;
+&lt;a href="#/about"&gt;Ir a About&lt;/a&gt;
+&lt;a href="#/"&gt;Volver al inicio&lt;/a&gt;
+          </code></pre>
+          <p class="note fragment" data-fragment-time="4">
+            Open Cells intercepta los clics en estos enlaces automáticamente.
+          </p>
+          <div class="callout fragment" data-fragment-time="7">
+            <p>Para navegar programáticamente usa <code>navigate('nombre-ruta')</code> desde <code>@open-cells/core</code>, o <code>this.pageController.navigate()</code> dentro de una página con PageController.</p>
+          </div>
+        </section>
+      </section>
+
+<!-- ESCENA 9 — viewLimit            ======== -->
+      <section data-audio="audio/12/09-escena.mp3">
+        <h2>viewLimit y persistentPages</h2>
+        <p class="scene-desc">Control del caché de páginas</p>
+        <pre><code class="language-typescript" data-trim data-line-numbers
+          data-highlight-steps='[{"time":0,"lines":""},{"time":0.5,"lines":"4"},{"time":13,"lines":"5-7"}]'>
+startApp({
+  routes,
+  mainNode: 'app-content',
+  viewLimit: 5, // máximo de páginas en DOM (por defecto: 3)
+  persistentPages: [
+    'home', // estas páginas nunca se eliminan del DOM
+  ],
+});
+        </code></pre>
+        <div class="callout fragment" data-fragment-index="1" data-fragment-time="5">
+          <p>Las páginas que superan <code>viewLimit</code> reciben <code>state="inactive"</code> y se eliminan del DOM. Al revisitarlas se descargan e inicializan de nuevo.</p>
+        </div>
+        <div class="callout fragment" data-fragment-index="2" data-fragment-time="13">
+          <p><code>persistentPages</code> excluye páginas del límite. Se mantienen en DOM con <code>state="cached"</code> indefinidamente.</p>
+        </div>
+      </section>
+
+      <!-- ============================== -->
+      <!-- RESUMEN                        -->
+      <!-- ============================== -->
+      <section data-audio="audio/12/99-resumen.mp3">
+        <h2>Resumen</h2>
+        <div class="file-tree">
+          <pre>
+Open Cells: routing hash · orquestación · estado · lazy loading
+
+startApp({ routes, mainNode: 'app-content' })
+
+Ruta: { path, name, component, action: () => import() }
+
+CSS OBLIGATORIO:
+  #app-content > [state="cached"],
+  #app-content > [state="inactive"] { display: none; }
+
+state: "active" | "cached" | "inactive"
+viewLimit: 3 (por defecto)   persistentPages: []
+          </pre>
+        </div>
+        <p class="note fragment" data-fragment-time="28" style="margin-top:1em;">
+          Siguiente paso: <strong>Componentes Lit en Cells — PageController</strong>
+        </p>
+      </section>
+
+    </div>
+  </div>
+
+  <script type="module" src="/js/main.js"></script>
+</body>
+</html>

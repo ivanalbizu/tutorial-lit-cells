@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>09 — Slots y composición | Lit + Cells</title>
+  <link rel="stylesheet" href="/node_modules/reveal.js/dist/reveal.css" />
+  <link rel="stylesheet" href="/node_modules/reveal.js/dist/theme/night.css" />
+  <link rel="stylesheet" href="/node_modules/reveal.js/plugin/highlight/monokai.css" />
+  <link rel="stylesheet" href="/css/custom.css" />
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- ============================== -->
+      <!-- INTRO                          -->
+      <!-- ============================== -->
+      <section data-audio="audio/09/00-intro.mp3">
+        <h1>Lit + Cells</h1>
+        <h3>Paso 9 — Slots y composición</h3>
+        <p class="subtitle">slot · named slots · fallback · ::slotted · slotchange</p>
+      </section>
+
+<!-- ESCENA 1 — Default slot         ======== -->
+      <section>
+        <section data-audio="audio/09/01-default-slot.mp3">
+          <h2>Default slot</h2>
+          <p class="scene-desc">El mecanismo de composición nativo</p>
+          <pre><code class="language-typescript large" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"20"}]'>
+import { LitElement, html, css } from 'lit';
+import { customElement, property, state } from 'lit/decorators.js';
+
+@customElement('my-accordion-item')
+export class MyAccordionItem extends LitElement {
+  @property({ type: String })
+  heading = '';
+
+  @state()
+  private _open = false;
+
+  render() {
+    return html`
+      &lt;div class="accordion"&gt;
+        &lt;button class="trigger" @click=${this._toggle}&gt;
+          ${this.heading}
+          &lt;span class="icon"&gt;${this._open ? '▲' : '▼'}&lt;/span&gt;
+        &lt;/button&gt;
+        &lt;div class="body" ?hidden=${!this._open}&gt;
+          &lt;slot&gt;&lt;/slot&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    `;
+  }
+
+  private _toggle() {
+    this._open = !this._open;
+  }
+}
+          </code></pre>
+        </section>
+
+        <section data-audio="audio/09/01b-default-slot.mp3">
+          <h2>Default slot</h2>
+          <p class="scene-desc">¿Cómo funciona la proyección?</p>
+          <div class="callout fragment" data-fragment-index="1" data-fragment-time="0.5">
+            <p>Todo lo que el usuario coloca entre las etiquetas del componente<br/>
+            se proyecta en el punto donde está el <code>&lt;slot&gt;</code>.</p>
+          </div>
+          <div class="callout fragment" data-fragment-index="2" data-fragment-time="6">
+            <p>El componente <strong>no necesita saber</strong> qué se le pasa:<br/>
+            párrafos, listas, imágenes, otros componentes — todo vale.</p>
+          </div>
+          <p class="note fragment" data-fragment-index="3" data-fragment-time="13">
+            Los slots son nativos de la plataforma web, no una invención de Lit
+          </p>
+        </section>
+      </section>
+
+<!-- ESCENA 2 — Fallback content     ======== -->
+      <section data-audio="audio/09/02-fallback.mp3">
+        <h2>Fallback content</h2>
+        <p class="scene-desc">Contenido por defecto cuando el slot está vacío</p>
+        <pre><code class="language-typescript" data-trim data-line-numbers
+          data-highlight-steps='[{"time":0,"lines":""},{"time":1,"lines":"2-6"}]'>
+&lt;div class="body" ?hidden=${!this._open}&gt;
+  &lt;slot&gt;
+    &lt;p class="empty-message"&gt;
+      Este acordeón no tiene contenido.
+    &lt;/p&gt;
+  &lt;/slot&gt;
+&lt;/div&gt;
+        </code></pre>
+        <div class="callout fragment" data-fragment-index="1" data-fragment-time="3">
+          <p>El contenido dentro de <code>&lt;slot&gt;</code> es el <strong>fallback</strong>.<br/>
+          Se muestra solo si el usuario no proyecta nada.</p>
+        </div>
+        <p class="note fragment" data-fragment-index="2" data-fragment-time="9">
+          En cuanto el usuario añade contenido, el fallback desaparece automáticamente
+        </p>
+      </section>
+
+<!-- ESCENA 3 — Named slots          ======== -->
+      <section>
+        <section data-audio="audio/09/03-named-slots.mp3">
+          <h2>Named slots</h2>
+          <p class="scene-desc">Proyectar contenido en posiciones específicas</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"5,8,11,14"}]'>
+render() {
+  return html`
+    &lt;div class="layout"&gt;
+      &lt;header class="layout-header"&gt;
+        &lt;slot name="header"&gt;&lt;h1&gt;Título por defecto&lt;/h1&gt;&lt;/slot&gt;
+      &lt;/header&gt;
+      &lt;aside class="layout-sidebar"&gt;
+        &lt;slot name="sidebar"&gt;&lt;/slot&gt;
+      &lt;/aside&gt;
+      &lt;main class="layout-main"&gt;
+        &lt;slot&gt;&lt;/slot&gt;
+      &lt;/main&gt;
+      &lt;footer class="layout-footer"&gt;
+        &lt;slot name="footer"&gt;&lt;p&gt;Pie de página por defecto&lt;/p&gt;&lt;/slot&gt;
+      &lt;/footer&gt;
+    &lt;/div&gt;
+  `;
+}
+          </code></pre>
+        </section>
+
+        <section data-audio="audio/09/03b-named-slots.mp3">
+          <h2>Named slots — uso desde fuera</h2>
+          <p class="scene-desc">El atributo <code>slot</code> dirige el contenido</p>
+          <pre><code class="language-html" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":5,"lines":"2-5"},{"time":8,"lines":"6-9"},{"time":11,"lines":"10-13"},{"time":16,"lines":"14"}]'>
+&lt;my-slot-demo&gt;
+  &lt;nav slot="header"&gt;
+    &lt;a href="/"&gt;Inicio&lt;/a&gt;
+    &lt;a href="/about"&gt;Acerca de&lt;/a&gt;
+  &lt;/nav&gt;
+  &lt;ul slot="sidebar"&gt;
+    &lt;li&gt;Categoría 1&lt;/li&gt;
+    &lt;li&gt;Categoría 2&lt;/li&gt;
+  &lt;/ul&gt;
+  &lt;article&gt;
+    &lt;h2&gt;Contenido principal&lt;/h2&gt;
+    &lt;p&gt;Este párrafo va al slot por defecto.&lt;/p&gt;
+  &lt;/article&gt;
+  &lt;p slot="footer"&gt;Derechos reservados 2026&lt;/p&gt;
+&lt;/my-slot-demo&gt;
+          </code></pre>
+          <p class="note fragment" data-fragment-time="19">
+            El orden en el HTML del usuario no importa — cada elemento va al slot que le corresponde
+          </p>
+        </section>
+      </section>
+
+<!-- ESCENA 4 — slotchange           ======== -->
+      <section>
+        <section data-audio="audio/09/04-slotchange.mp3">
+          <h2>Evento slotchange</h2>
+          <p class="scene-desc">Reaccionar cuando cambia el contenido proyectado</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"2,5-9"}]'>
+// En el template:
+&lt;slot @slotchange=${this._onSlotChange}&gt;&lt;/slot&gt;
+
+// Método:
+private _onSlotChange(e: Event) {
+  const slot = e.target as HTMLSlotElement;
+  const nodes = slot.assignedNodes({ flatten: true });
+  console.log('[slotchange] Nodos proyectados:', nodes.length);
+}
+          </code></pre>
+          <div class="callout fragment" data-fragment-index="1" data-fragment-time="2">
+            <p><code>slotchange</code> se dispara cuando se añaden o eliminan elementos del slot.</p>
+          </div>
+          <div class="callout fragment" data-fragment-index="2" data-fragment-time="12">
+            <p><code>slot.assignedNodes({ flatten: true })</code><br/>
+            Devuelve los nodos proyectados. <code>flatten</code> aplana slots anidados.</p>
+          </div>
+          <p class="note fragment" data-fragment-index="3" data-fragment-time="21">
+            Útil para contar ítems, validar contenido obligatorio o actualizar aria-attributes
+          </p>
+        </section>
+
+        <section data-audio="audio/09/04b-flatten.mp3">
+          <h2>flatten: true — slots anidados</h2>
+          <p class="scene-desc">Cuando un componente con slot se proyecta dentro de otro</p>
+          <pre><code class="language-html" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":3,"lines":"2-6"},{"time":12,"lines":"2-5,10-11"},{"time":20,"lines":"2-5,13-14"}]'>
+&lt;!-- ComponenteA escucha slotchange en su slot --&gt;
+&lt;componente-a&gt;
+  &lt;mi-tarjeta&gt;          &lt;!-- también tiene su propio slot --&gt;
+    &lt;p&gt;Texto final&lt;/p&gt;
+  &lt;/mi-tarjeta&gt;
+&lt;/componente-a&gt;
+
+&lt;!-- En el handler de ComponenteA: --&gt;
+
+// Sin flatten → [&lt;mi-tarjeta&gt;]
+slot.assignedNodes()
+
+// Con flatten → [&lt;p&gt;Texto final&lt;/p&gt;]
+slot.assignedNodes({ flatten: true })
+          </code></pre>
+          <div class="callout fragment" data-fragment-time="14">
+            <p>Sin <code>flatten</code>: obtienes el componente intermedio (<code>&lt;mi-tarjeta&gt;</code>).<br/>
+            Con <code>flatten: true</code>: obtienes el contenido real, resolviendo todos los niveles.</p>
+          </div>
+          <p class="note fragment" data-fragment-time="26">
+            En la práctica es poco frecuente — útil al componer componentes que se anidan varios niveles
+          </p>
+        </section>
+      </section>
+
+<!-- ESCENA 5 — ::slotted()          ======== -->
+      <section data-audio="audio/09/05-slotted.mp3">
+        <h2>::slotted()</h2>
+        <p class="scene-desc">Estilizar el contenido proyectado</p>
+        <pre><code class="language-css large" data-trim data-line-numbers>
+.accordion { border: 1px solid #444; border-radius: 6px; overflow: hidden; }
+
+.trigger {
+  width: 100%;
+  background: #2a2a2a;
+  color: #fff;
+  border: none;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+}
+
+.trigger:hover { background: #333; }
+.body { padding: 1rem; background: #1a1a1a; }
+.empty-message { color: #888; font-style: italic; }
+
+::slotted(p)  { margin: 0 0 0.75rem; line-height: 1.6; color: #ddd; }
+::slotted(ul) { padding-left: 1.25rem; color: #ddd; }
+        </code></pre>
+        <div class="callout warning fragment" data-fragment-time="3">
+          <p>Solo afecta a los <strong>hijos directos</strong> del slot.<br/>
+          <code>::slotted(p)</code> no llega a párrafos dentro de un <code>&lt;div&gt;</code> proyectado.</p>
+        </div>
+      </section>
+
+<!-- ESCENA 6 — Patrón de composición  ======== -->
+      <section>
+        <section data-audio="audio/09/06-patron.mp3">
+          <h2>Patrón de composición</h2>
+          <p class="scene-desc">Componentes contenedor (wrapper components)</p>
+          <pre><code class="language-html" data-trim data-line-numbers>
+&lt;!-- El componente define la ESTRUCTURA --&gt;
+&lt;my-accordion-item heading="¿Qué es Lit?"&gt;
+  &lt;p&gt;Lit es una librería para crear Web Components...&lt;/p&gt;
+  &lt;ul&gt;
+    &lt;li&gt;Ligero: 5 KB comprimido&lt;/li&gt;
+    &lt;li&gt;Estándar: Web Components nativos&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/my-accordion-item&gt;
+
+&lt;!-- El acordeón sin contenido muestra el fallback --&gt;
+&lt;my-accordion-item heading="Sección vacía"&gt;&lt;/my-accordion-item&gt;
+          </code></pre>
+        </section>
+
+        <section data-audio="audio/09/06b-patron.mp3">
+          <h2>Patrón de composición</h2>
+          <p class="scene-desc">Principio fundamental</p>
+          <div class="callout fragment" data-fragment-index="1" data-fragment-time="3">
+            <p>El componente <strong>define la estructura</strong> y el comportamiento.<br/>
+            El usuario <strong>decide el contenido</strong>.</p>
+          </div>
+          <div class="callout fragment" data-fragment-index="2" data-fragment-time="9">
+            <p>Componentes que siguen este patrón:<br/>
+            acordeones, tarjetas, modales, layouts, tabs, tooltips...</p>
+          </div>
+          <p class="note fragment" data-fragment-index="3" data-fragment-time="14">
+            Máxima reutilización — mínimo acoplamiento
+          </p>
+        </section>
+      </section>
+
+      <!-- ============================== -->
+      <!-- RESUMEN                        -->
+      <!-- ============================== -->
+      <section data-audio="audio/09/99-resumen.mp3">
+        <h2>Resumen</h2>
+        <div class="file-tree">
+          <pre>
+  &lt;slot&gt;&lt;/slot&gt;              Slot por defecto
+  &lt;slot&gt;fallback&lt;/slot&gt;      Se muestra si no hay contenido proyectado
+  &lt;slot name="x"&gt;            Slot con nombre
+  slot="x"                   Dirige el contenido al slot correspondiente
+  @slotchange                 Notifica cuando cambia el contenido
+  slot.assignedNodes()        Nodos proyectados programáticamente
+  ::slotted(selector)         Hijos directos proyectados (solo primer nivel)
+          </pre>
+        </div>
+        <p class="note fragment" style="margin-top:1em;" data-fragment-time="1">
+          Los slots son nativos del navegador — Lit simplemente los usa como corresponde
+        </p>
+        <p class="note fragment" data-fragment-time="20">
+          Siguiente paso: <strong>Reactive Controllers</strong>
+        </p>
+      </section>
+
+    </div>
+  </div>
+
+  <script type="module" src="/js/main.js"></script>
+</body>
+</html>

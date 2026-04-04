@@ -1,0 +1,270 @@
+/* Alineación superior en todas las slides */
+.reveal .slides section {
+  top: 0 !important;
+  padding-top: 1em;
+}
+
+/* Tipografia general */
+.reveal {
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.reveal h1,
+.reveal h2,
+.reveal h3 {
+  text-transform: none;
+  font-weight: 700;
+}
+
+.reveal h1 {
+  font-size: 2.5em;
+  color: #646cff;
+}
+
+.reveal h2 {
+  font-size: 1.6em;
+  color: #c4c4ff;
+  margin-bottom: 0.2em;
+}
+
+.reveal h3 {
+  color: #646cff;
+  font-size: 1.3em;
+}
+
+/* Subtitulos */
+.subtitle {
+  color: #888;
+  font-size: 0.9em;
+  margin-top: 0.5em;
+}
+
+.scene-desc {
+  color: #888;
+  font-size: 0.7em;
+  margin-top: 0;
+  margin-bottom: 0.4em;
+}
+
+/* Bloques de codigo */
+.reveal pre {
+  width: max-content;
+  font-size: 0.52em;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  border-radius: 8px;
+  margin-top: 0;
+  margin-bottom: 0.4em;
+}
+
+.reveal pre code {
+  max-height: 400px;
+  padding: 0.8em 1em;
+}
+.reveal pre code.large {
+  max-height: 600px;
+}
+.reveal pre code.x-large {
+  max-height: 750px;
+}
+
+/* Lineas resaltadas */
+.reveal code .highlight-line {
+  background: rgba(100, 108, 255, 0.15);
+}
+
+/* Notas explicativas */
+.note {
+  font-size: 0.7em;
+  color: #aaa;
+  margin-top: 0.5em;
+}
+
+/* Callouts */
+.callout {
+  background: rgba(100, 108, 255, 0.1);
+  border-left: 3px solid #646cff;
+  padding: 0.4em 0.8em;
+  margin: 0.3em 0;
+  border-radius: 0 6px 6px 0;
+  font-size: 0.62em;
+  text-align: left;
+}
+
+.callout p {
+  margin: 0;
+}
+
+.callout.warning {
+  background: rgba(255, 170, 50, 0.1);
+  border-left-color: #ffaa32;
+}
+
+.callout.warning code {
+  color: #ffaa32;
+}
+
+/* Terminal simulada */
+.terminal {
+  background: #0d1117;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 1em;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.6em;
+  text-align: left;
+  color: #58a6ff;
+  margin: 0.5em auto;
+  max-width: fit-content;
+}
+
+.terminal pre {
+  margin: 0;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+  font-size: 1em;
+  color: #58a6ff;
+}
+
+/* Browser preview simulado */
+.browser-preview {
+  background: #1a1a2e;
+  border: 1px solid #333;
+  border-radius: 8px;
+  overflow: hidden;
+  max-width: 500px;
+  margin: 0.5em auto;
+}
+
+.browser-bar {
+  background: #2a2a3e;
+  padding: 0.3em 0.8em;
+  font-size: 0.5em;
+  color: #888;
+  border-bottom: 1px solid #333;
+}
+
+.browser-content {
+  padding: 1em;
+  text-align: left;
+}
+
+/* File tree */
+.file-tree {
+  text-align: left;
+  max-width: max-content;
+  margin: 0 auto;
+}
+
+.file-tree pre {
+  background: #0d1117;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 1em;
+  font-size: 0.6em;
+  color: #8b949e;
+  box-shadow: none;
+}
+
+/* Audio panel */
+.audio-panel {
+  position: fixed;
+  bottom: 10px;
+  right: 150px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(13, 17, 23, 0.9);
+  border: 1px solid #30363d;
+  border-radius: 20px;
+  padding: 6px 12px;
+  z-index: 100;
+  font-size: 13px;
+  backdrop-filter: blur(8px);
+  transition: border-color 0.3s;
+}
+
+.audio-panel.playing {
+  border-color: #646cff;
+}
+
+.audio-panel.ended {
+  border-color: #4caf50;
+}
+
+.audio-btn {
+  background: none;
+  border: none;
+  color: #e6edf3;
+  font-size: 16px;
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.audio-btn:hover {
+  background: rgba(100, 108, 255, 0.2);
+}
+
+.audio-progress-bar {
+  width: 120px;
+  height: 4px;
+  background: #30363d;
+  border-radius: 2px;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.audio-progress-fill {
+  height: 100%;
+  background: #646cff;
+  border-radius: 2px;
+  width: 0%;
+  transition: width 0.1s linear;
+}
+
+.audio-panel.ended .audio-progress-fill {
+  background: #4caf50;
+}
+
+.audio-time {
+  color: #8b949e;
+  font-size: 14px;
+  min-width: 62px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Nav hint */
+.nav-hint {
+  font-size: 13px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+.nav-hint.vertical {
+  color: #ffaa32;
+  background: rgba(255, 170, 50, 0.1);
+}
+
+.nav-hint.horizontal {
+  color: #646cff;
+  background: rgba(100, 108, 255, 0.1);
+}
+
+/* Progress bar custom */
+.reveal .progress {
+  color: #646cff;
+}
+
+/* Slide number */
+.reveal .slide-number {
+  font-size: 0.6em;
+  color: #666;
+}

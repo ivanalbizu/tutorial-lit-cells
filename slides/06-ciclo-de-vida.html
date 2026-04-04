@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>06 — Ciclo de vida | Lit + Cells</title>
+  <link rel="stylesheet" href="/node_modules/reveal.js/dist/reveal.css" />
+  <link rel="stylesheet" href="/node_modules/reveal.js/dist/theme/night.css" />
+  <link rel="stylesheet" href="/node_modules/reveal.js/plugin/highlight/monokai.css" />
+  <link rel="stylesheet" href="/css/custom.css" />
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- ============================== -->
+      <!-- INTRO                          -->
+      <!-- ============================== -->
+      <section data-audio="audio/06/00-intro.mp3">
+        <h1>Lit + Cells</h1>
+        <h3>Paso 6 — Ciclo de vida de un componente</h3>
+        <p class="subtitle">constructor → connectedCallback → render → disconnectedCallback</p>
+      </section>
+
+<!-- ESCENA 1 — Diagrama del ciclo   ======== -->
+      <section data-audio="audio/06/01-diagrama.mp3">
+        <h2>Orden del ciclo de vida</h2>
+        <p class="scene-desc">De la creación a la eliminación</p>
+        <div class="file-tree">
+          <pre>
+  constructor()           Al crear la instancia
+      ↓
+  connectedCallback()     Al insertar en el DOM
+      ↓
+  willUpdate(changed)     Antes de cada render
+      ↓
+  render()                Produce el template
+      ↓
+  firstUpdated()          Tras el primer render (una vez)
+      ↓
+  updated(changed)        Tras cada render
+      ↓
+  disconnectedCallback()  Al remover del DOM
+          </pre>
+        </div>
+        <p class="note fragment" data-fragment-time="5">
+          Los métodos con <strong>super</strong> obligatorio: <code>connectedCallback</code> y <code>disconnectedCallback</code>
+        </p>
+      </section>
+
+<!-- ESCENA 2 — constructor()        ======== -->
+      <section>
+        <section data-audio="audio/06/02-constructor.mp3">
+          <h2>constructor()</h2>
+          <p class="scene-desc">El primero en ejecutarse</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":1,"lines":"12-15"}]'>
+import { LitElement, html, css } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
+
+@customElement('my-clock')
+export class MyClock extends LitElement {
+  @property({ type: String })
+  label = 'Hora actual';
+
+  private _timerId: number | null = null;
+  private _currentTime = '';
+
+  constructor() {
+    super();
+    this._currentTime = this._formatTime(new Date());
+  }
+}
+          </code></pre>
+          <div class="callout warning fragment" data-fragment-time="4">
+            <p><code>super()</code> debe ser la primera línea.<br/>
+            El Shadow DOM <strong>todavía no existe</strong> aquí.</p>
+          </div>
+        </section>
+
+        <section data-audio="audio/06/02b-constructor.mp3">
+          <h2>constructor()</h2>
+          <p class="scene-desc">¿Qué hacer y qué no hacer?</p>
+          <div class="callout fragment" data-fragment-index="1" data-fragment-time="1">
+            <p>Inicializar propiedades internas con valores por defecto</p>
+          </div>
+          <div class="callout warning fragment" data-fragment-index="2" data-fragment-time="5">
+            <p>NO acceder a <code>this.shadowRoot</code> ni a elementos del template.<br/>
+            El Shadow DOM se crea después del constructor.</p>
+          </div>
+        </section>
+      </section>
+
+<!-- ESCENA 3 — connectedCallback()  ======== -->
+      <section>
+        <section data-audio="audio/06/03-connected.mp3">
+          <h2>connectedCallback()</h2>
+          <p class="scene-desc">El elemento se inserta en el DOM</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+           data-highlight-steps='[{"time":0,"lines":""},{"time":5.5,"lines":"2"},{"time":9,"lines":"3-6"}]'>
+connectedCallback() {
+  super.connectedCallback();
+  this._timerId = window.setInterval(() => {
+    this._currentTime = this._formatTime(new Date());
+    this.requestUpdate();
+  }, 1000);
+}
+          </code></pre>
+          <p class="note fragment" data-fragment-time="5">
+            <code>super.connectedCallback()</code> es <strong>obligatorio</strong>
+          </p>
+        </section>
+
+        <section data-audio="audio/06/03b-connected.mp3">
+          <h2>connectedCallback()</h2>
+          <p class="scene-desc">¿Por qué <code>requestUpdate()</code>?</p>
+          <div class="callout fragment" data-fragment-index="1" data-fragment-time="2">
+            <p><code>_currentTime</code> es una propiedad privada.<br/>
+            Lit no la observa automáticamente.<br/>
+            <code>this.requestUpdate()</code> fuerza un nuevo render.</p>
+          </div>
+          <div class="callout fragment" data-fragment-index="2" data-fragment-time="12">
+            <p>Aquí también puedes: suscribirte a eventos globales, cargar datos, iniciar animaciones.</p>
+          </div>
+        </section>
+      </section>
+
+<!-- ESCENA 4 — willUpdate()         ======== -->
+      <section data-audio="audio/06/04-willupdate.mp3">
+        <h2>willUpdate(changedProps)</h2>
+        <p class="scene-desc">Antes de cada render — derivar estado</p>
+        <pre><code class="language-typescript" data-trim data-line-numbers>
+willUpdate(changedProps: Map&lt;string, unknown&gt;) {
+  if (changedProps.has('label') && this.label === '') {
+    this.label = 'Sin etiqueta';
+  }
+}
+        </code></pre>
+        <div class="callout fragment" data-fragment-index="1" data-fragment-time="10">
+          <p><code>changedProps</code> contiene los valores <strong>anteriores</strong>, no los nuevos.<br/>
+          Para leer el nuevo valor usa <code>this.label</code> directamente.</p>
+        </div>
+        <p class="note fragment" data-fragment-index="2" data-fragment-time="20">
+          Los cambios aquí <strong>no disparan un render adicional</strong>
+        </p>
+      </section>
+
+<!-- ESCENA 5 — render()             ======== -->
+      <section data-audio="audio/06/05-render.mp3">
+        <h2>render()</h2>
+        <p class="scene-desc">Puro: solo lee estado, retorna template</p>
+        <pre><code class="language-typescript" data-trim data-line-numbers>
+render() {
+  return html`
+    &lt;div class="clock"&gt;
+      &lt;span class="label"&gt;${this.label}&lt;/span&gt;
+      &lt;span class="time"&gt;${this._currentTime}&lt;/span&gt;
+    &lt;/div&gt;
+  `;
+}
+        </code></pre>
+        <div class="callout warning fragment" data-fragment-time="5">
+          <p>Nunca modifiques propiedades dentro de <code>render()</code>.<br/>
+          Si tiene efectos secundarios, tu componente se vuelve impredecible.</p>
+        </div>
+      </section>
+
+<!-- ESCENA 6 — firstUpdated()       ======== -->
+      <section data-audio="audio/06/06-firstupdated.mp3">
+        <h2>firstUpdated()</h2>
+        <p class="scene-desc">Una sola vez — el Shadow DOM ya existe</p>
+        <pre><code class="language-typescript" data-trim data-line-numbers
+          data-highlight-steps='[{"time":0,"lines":""},{"time":7,"lines":"3"}]'>
+firstUpdated() {
+  // El Shadow DOM ya existe aquí
+  const timeEl = this.shadowRoot!.querySelector('.time');
+  console.log('Elemento .time encontrado:', timeEl);
+}
+        </code></pre>
+        <div class="callout fragment" data-fragment-time="12">
+          <p>Equivale al <code>mounted</code> de otros frameworks.<br/>
+          Ideal para integrar librerías de terceros, enfocar campos de formulario o medir el DOM.</p>
+        </div>
+      </section>
+
+<!-- ESCENA 7 — updated()            ======== -->
+      <section data-audio="audio/06/07-updated.mp3">
+        <h2>updated(changedProps)</h2>
+        <p class="scene-desc">Tras cada render — DOM ya actualizado</p>
+        <pre><code class="language-typescript" data-trim data-line-numbers
+          data-highlight-steps='[{"time":0,"lines":""},{"time":15,"lines":"2,5"}]'>
+updated(changedProps: Map&lt;string, unknown&gt;) {
+  if (changedProps.has('label')) {
+    const prev = changedProps.get('label');
+    console.log(`Label cambió de "${prev}" a "${this.label}"`);
+  }
+}
+        </code></pre>
+        <div class="callout warning fragment" data-fragment-time="12">
+          <p>Si modificas una propiedad observada dentro de <code>updated()</code>,<br/>
+          causarás otro render. <strong>Siempre protege con una condición.</strong></p>
+        </div>
+      </section>
+
+<!-- ESCENA 8 — disconnectedCallback ======== -->
+      <section data-audio="audio/06/08-disconnected.mp3">
+        <h2>disconnectedCallback()</h2>
+        <p class="scene-desc">El elemento se elimina del DOM — limpiar todo</p>
+        <pre><code class="language-typescript" data-trim data-line-numbers
+          data-highlight-steps='[{"time":0,"lines":""},{"time":4,"lines":"3-6"},{"time":16,"lines":"2"}]'>
+disconnectedCallback() {
+  super.disconnectedCallback();
+  if (this._timerId !== null) {
+    window.clearInterval(this._timerId);
+    this._timerId = null;
+  }
+}
+        </code></pre>
+        <div class="callout warning fragment" data-fragment-time="5">
+          <p>Sin esta limpieza, el <code>setInterval</code> seguirá corriendo en memoria<br/>
+          aunque el elemento ya no esté en el DOM. Memory leak garantizado.</p>
+        </div>
+        <p class="note fragment" data-fragment-time="12">
+          También cancela peticiones de red, remueve event listeners globales
+        </p>
+      </section>
+
+<!-- ESCENA 9 — changedProps Map     ======== -->
+      <section data-audio="audio/06/09-changedprops.mp3">
+        <h2>changedProps: el Map explicado</h2>
+        <p class="scene-desc">Valores anteriores, no los nuevos</p>
+        <pre><code class="language-typescript" data-trim data-line-numbers>
+// Supón que label era "Hora" y pasa a ser "Tiempo"
+willUpdate(changedProps: Map&lt;string, unknown&gt;) {
+  // changedProps.get('label') === "Hora"  // valor anterior
+  // this.label                === "Tiempo" // valor nuevo
+
+  if (changedProps.has('label')) {
+    const prevLabel = changedProps.get('label') as string;
+    console.log(`Cambió de "${prevLabel}" a "${this.label}"`);
+  }
+}
+        </code></pre>
+        <div class="callout fragment" data-fragment-time="6">
+          <p><code>changedProps</code> existe tanto en <code>willUpdate</code> como en <code>updated</code>.<br/>
+          Ambos reciben el mismo Map con los valores <strong>anteriores</strong>.</p>
+        </div>
+      </section>
+
+<!-- ESCENA 10 — Componente wrapper  ======== -->
+      <section>
+        <section data-audio="audio/06/10-wrapper.mp3">
+          <h2>Componente demo: my-lifecycle-demo</h2>
+          <p class="scene-desc">Montar y desmontar para ver el ciclo completo</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+           data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"8"},{"time":5,"lines":"18-20"},{"time":6,"lines":"19"},{"time":8,"lines":"20"}]'>
+import { LitElement, html, css } from 'lit';
+import { customElement, state } from 'lit/decorators.js';
+import './my-clock.js';
+
+@customElement('my-lifecycle-demo')
+export class MyLifecycleDemo extends LitElement {
+  @state()
+  private _mounted = true;
+
+  render() {
+    return html`
+      &lt;div class="controls"&gt;
+        &lt;button @click=${this._toggle}&gt;
+          ${this._mounted ? 'Desmontar reloj' : 'Montar reloj'}
+        &lt;/button&gt;
+      &lt;/div&gt;
+      &lt;div class="stage"&gt;
+        ${this._mounted
+          ? html`&lt;my-clock label="Demo lifecycle"&gt;&lt;/my-clock&gt;`
+          : html``}
+      &lt;/div&gt;
+    `;
+  }
+
+  private _toggle() {
+    this._mounted = !this._mounted;
+  }
+}
+          </code></pre>
+        </section>
+
+        <section data-audio="audio/06/10b-wrapper.mp3">
+          <h2>Orden en la consola</h2>
+          <p class="scene-desc">Al montar el reloj</p>
+          <div class="terminal">
+            <pre>
+  [constructor]        Se ejecuta antes de conectar al DOM
+  [connectedCallback]  El elemento se acaba de insertar
+  [willUpdate]         changedProps: Map(0)
+  [render]             Se ejecuta para producir el template
+  [firstUpdated]       Primer render completado
+  [updated]            DOM actualizado
+            </pre>
+          </div>
+          <p class="note fragment" data-fragment-time="8">
+            Al desmontar: solo aparece <code>[disconnectedCallback]</code>.<br/>
+            Al volver a montar: ciclo completo de nuevo (instancia nueva).
+          </p>
+        </section>
+      </section>
+
+      <!-- ============================== -->
+      <!-- RESUMEN                        -->
+      <!-- ============================== -->
+      <section data-audio="audio/06/99-resumen.mp3">
+        <h2>Resumen</h2>
+        <div class="file-tree">
+          <pre>
+  Método               Cuándo              super obligatorio
+  ─────────────────────────────────────────────────────────
+  constructor()        Al crear instancia  Sí
+  connectedCallback()  Al insertar en DOM  Sí
+  willUpdate()         Antes de render     No
+  render()             Cada actualización  No aplica
+  firstUpdated()       Tras 1er render     No
+  updated()            Tras cada render    No
+  disconnectedCallback()  Al remover       Sí
+          </pre>
+        </div>
+        <p class="note fragment" style="margin-top:1em;" data-fragment-time="4">
+          Regla práctica: <strong>inicia</strong> en connectedCallback,
+          <strong>limpia</strong> en disconnectedCallback,
+          <strong>accede al DOM</strong> en firstUpdated,
+          <strong>deriva estado</strong> en willUpdate.
+        </p>
+        <p class="note fragment" data-fragment-time="20">
+          Siguiente paso: <strong>Estilos encapsulados con Shadow DOM</strong>
+        </p>
+      </section>
+
+    </div>
+  </div>
+
+  <script type="module" src="/js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>11 — Decoradores avanzados | Lit + Cells</title>
+  <link rel="stylesheet" href="/node_modules/reveal.js/dist/reveal.css" />
+  <link rel="stylesheet" href="/node_modules/reveal.js/dist/theme/night.css" />
+  <link rel="stylesheet" href="/node_modules/reveal.js/plugin/highlight/monokai.css" />
+  <link rel="stylesheet" href="/css/custom.css" />
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- ============================== -->
+      <!-- INTRO                          -->
+      <!-- ============================== -->
+      <section data-audio="audio/11/00-intro.mp3">
+        <h1>Decoradores avanzados</h1>
+        <h3>Paso 11 — @query, @queryAll, @queryAsync</h3>
+        <p class="subtitle">Acceso declarativo al DOM interno del componente</p>
+      </section>
+
+<!-- ESCENA 1 — El problema         ======== -->
+      <section data-audio="audio/11/01-escena.mp3">
+        <h2>El problema que resuelven</h2>
+        <p class="scene-desc">Sin decoradores: acceso manual verboso</p>
+        <pre><code class="language-typescript" data-trim data-line-numbers>
+// Sin decoradores — repetitivo y sin tipos precisos
+private _handleSubmit() {
+  const input = this.renderRoot
+    .querySelector&lt;HTMLInputElement&gt;('#name-input');
+  const btn = this.renderRoot
+    .querySelector&lt;HTMLButtonElement&gt;('button[type="submit"]');
+  const all = this.renderRoot
+    .querySelectorAll&lt;HTMLInputElement&gt;('input');
+  // ...
+}
+        </code></pre>
+        <div class="callout fragment" data-fragment-time="12">
+          <p><code>@query</code>, <code>@queryAll</code> y <code>@queryAsync</code> son atajos declarativos con tipos correctos de TypeScript.</p>
+        </div>
+      </section>
+
+<!-- ESCENA 2 — @query              ======== -->
+      <section>
+        <section data-audio="audio/11/02-escena.mp3">
+          <h2>@query — elemento único</h2>
+          <p class="scene-desc">Getter con caché para el primer elemento que coincide</p>
+          <pre><code class="language-typescript large" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"10,13,16"},{"time":7,"lines":"10-11,13-14,16-17"}]'>
+import { LitElement, html, css } from 'lit';
+import {
+  customElement, query, queryAll, queryAsync, state
+} from 'lit/decorators.js';
+
+@customElement('my-form-demo')
+export class MyFormDemo extends LitElement {
+
+  // Getter cacheado — llama querySelector solo la primera vez
+  @query('#name-input')
+  private nameInput!: HTMLInputElement;
+
+  @query('#email-input')
+  private emailInput!: HTMLInputElement;
+
+  @query('button[type="submit"]')
+  private submitBtn!: HTMLButtonElement;
+
+  // ... métodos y render en slides siguientes
+}
+          </code></pre>
+          <div class="callout fragment" data-fragment-time="20">
+            <p>El <code>!</code> en el tipo (<code>nameInput!: HTMLInputElement</code>) le dice a TypeScript que garantizamos que el elemento existe en el DOM.</p>
+          </div>
+        </section>
+
+        <section data-audio="audio/11/02b-escena.mp3">
+          <h2>@query — caché y advertencia</h2>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"5-6"}]'>
+  // Caché activado por defecto
+  @query('#name-input')
+  private nameInput!: HTMLInputElement;
+
+  // Desactivar caché: busca en el DOM en cada acceso
+  @query('#name-input', true)
+  private nameInputNoCache!: HTMLInputElement;
+          </code></pre>
+          <div class="callout warning fragment" data-fragment-time="5">
+            <p>No accedas a propiedades <code>@query</code> en el constructor ni en <code>connectedCallback</code> antes del primer render. El Shadow DOM aún no existe.</p>
+          </div>
+          <div class="callout fragment" data-fragment-time="10">
+            <p><code>cache: false</code> solo tiene sentido para elementos condicionales con acceso síncrono.<br/>
+            Para ese caso, <code>@queryAsync</code> es la solución idiomática — lo vemos en el siguiente slide.</p>
+          </div>
+        </section>
+      </section>
+
+<!-- ESCENA 3 — @queryAll           ======== -->
+      <section data-audio="audio/11/03-escena.mp3">
+        <h2>@queryAll — múltiples elementos</h2>
+        <p class="scene-desc">Equivalente a querySelectorAll — devuelve NodeList</p>
+        <pre><code class="language-typescript large" data-trim data-line-numbers
+          data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"2-3"},{"time":8,"lines":"9-16"}]'>
+  // NodeList con todos los inputs del formulario
+  @queryAll('input')
+  private allInputs!: NodeListOf&lt;HTMLInputElement&gt;;
+
+  private _validate(): boolean {
+    let valid = true;
+
+    // Iterar sobre todos los inputs con allInputs
+    this.allInputs.forEach(input => {
+      if (!input.value.trim()) {
+        input.classList.add('invalid');
+        valid = false;
+      } else {
+        input.classList.remove('invalid');
+      }
+    });
+
+    return valid;
+  }
+        </code></pre>
+        <p class="note fragment" data-fragment-time="4">
+          <code>@queryAll</code> no se cachea — devuelve una <code>NodeList</code> viva en cada acceso
+        </p>
+      </section>
+
+<!-- ESCENA 4 — @queryAsync         ======== -->
+      <section>
+        <section data-audio="audio/11/04-escena.mp3">
+          <h2>@queryAsync — elementos condicionales</h2>
+          <p class="scene-desc">Devuelve una Promise que resuelve tras el siguiente render</p>
+          <pre><code class="language-typescript" data-trim data-line-numbers>
+  @state() private _submitted = false;
+
+  // El elemento #success-message solo existe cuando _submitted === true
+  @queryAsync('#success-message')
+  private successMessage!: Promise&lt;HTMLElement | null&gt;;
+          </code></pre>
+          <div class="callout fragment" data-fragment-index="1" data-fragment-time="9">
+            <p>Si usáramos <code>@query</code> aquí, el elemento aún no estaría en el DOM: Lit renderiza de forma asíncrona.</p>
+          </div>
+          <div class="callout warning fragment" data-fragment-index="2" data-fragment-time="14">
+            <p><code>@queryAsync</code> resuelve <em>después</em> del siguiente ciclo de renderizado. Siempre úsalo con <code>await</code>.</p>
+          </div>
+        </section>
+
+        <section data-audio="audio/11/04b-escena.mp3">
+          <h2>@queryAsync — uso con await</h2>
+          <pre><code class="language-typescript large" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"5"},{"time":4,"lines":"7-8"},{"time":7,"lines":"9-10"},{"time":9,"lines":"13-19"}]'>
+  private async _handleSubmit(e: Event) {
+    e.preventDefault();
+    if (!this._validate()) return;
+
+    this._submitted = true; // dispara un nuevo render
+
+    // Esperamos a que el render termine y el elemento aparezca
+    const msg = await this.successMessage;
+    msg?.scrollIntoView({ behavior: 'smooth' });
+    msg?.focus();
+  }
+
+  private _handleReset() {
+    this._submitted = false;
+    // updateComplete: Promise que resuelve cuando el DOM está listo
+    this.updateComplete.then(() => {
+      this.nameInput.focus();
+    });
+  }
+          </code></pre>
+          <p class="note fragment" data-fragment-time="9">
+            <code>updateComplete</code> es la alternativa síncrona a <code>@queryAsync</code>: úsala cuando ya tienes el elemento con <code>@query</code> pero necesitas esperar al render.
+          </p>
+        </section>
+      </section>
+
+<!-- ESCENA 5 — Formulario completo  ======== -->
+      <section>
+        <section data-audio="audio/11/05-escena.mp3">
+          <h2>Formulario con validación</h2>
+          <p class="scene-desc">Template con elemento condicional</p>
+          <pre><code class="language-typescript large" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"3-23"},{"time":4,"lines":"10-22"},{"time":10,"lines":"5-8"}]'>
+  render() {
+    return html`
+      ${this._submitted
+        ? html`
+          &lt;div id="success-message" tabindex="-1"&gt;
+            &lt;p&gt;Formulario enviado correctamente.&lt;/p&gt;
+            &lt;button @click=${this._handleReset}&gt;Volver&lt;/button&gt;
+          &lt;/div&gt;`
+        : html`
+          &lt;form @submit=${this._handleSubmit}&gt;
+            &lt;label&gt;
+              Nombre
+              &lt;input id="name-input" type="text"
+                     placeholder="Tu nombre" /&gt;
+            &lt;/label&gt;
+            &lt;label&gt;
+              Email
+              &lt;input id="email-input" type="email"
+                     placeholder="tu@email.com" /&gt;
+            &lt;/label&gt;
+            &lt;button type="submit"&gt;Enviar&lt;/button&gt;
+          &lt;/form&gt;`
+      }
+    `;
+  }
+          </code></pre>
+        </section>
+
+        <section data-audio="audio/11/05b-escena.mp3">
+          <h2>Flujo completo</h2>
+          <p class="scene-desc">Por qué cada decorador en su lugar</p>
+          <div class="callout fragment" data-fragment-index="1" data-fragment-time="1">
+            <p><code>@query('#name-input')</code> — acceso directo y cacheado. Se usa en <code>_handleReset</code> para enfocar tras el render.</p>
+          </div>
+          <div class="callout fragment" data-fragment-index="2" data-fragment-time="7">
+            <p><code>@queryAll('input')</code> — itera todos los campos para validar en lote.</p>
+          </div>
+          <div class="callout fragment" data-fragment-index="3" data-fragment-time="11">
+            <p><code>@queryAsync('#success-message')</code> — el elemento solo existe cuando <code>_submitted</code> es <code>true</code>. Necesita la Promise para esperar al render.</p>
+          </div>
+        </section>
+      </section>
+
+      <!-- ============================== -->
+      <!-- RESUMEN                        -->
+      <!-- ============================== -->
+      <section data-audio="audio/11/99-resumen.mp3">
+        <h2>Resumen</h2>
+        <div class="file-tree">
+          <pre>
+@query('#selector')
+  → primer elemento — cacheado por defecto
+  → { cache: false } para desactivar caché
+
+@queryAll('.selector')
+  → NodeList — todos los elementos que coinciden
+
+@queryAsync('#selector')
+  → Promise — resuelve tras el siguiente render
+  → necesario para elementos condicionales
+
+updateComplete
+  → Promise de Lit — DOM listo tras el render actual
+          </pre>
+        </div>
+        <p class="note fragment" data-fragment-time="24" style="margin-top:1em;">
+          Siguiente paso: <strong>Introducción a Open Cells</strong>
+        </p>
+      </section>
+
+    </div>
+  </div>
+
+  <script type="module" src="/js/main.js"></script>
+</body>
+</html>
