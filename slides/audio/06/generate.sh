@@ -38,7 +38,7 @@ speak "03-connected.mp3" \
   "connected Callback se ejecuta cuando el elemento se inserta en el DOM. De nuevo, llamar a super.connected Callback() es obligatorio. Este es el lugar ideal para iniciar temporizadores, suscribirse a eventos globales o cargar datos. Aquí arrancamos un set interval que actualiza la hora cada segundo."
 
 speak "03b-connected.mp3" \
-  "Llamamos a this.request Update() porque _currentTime es una propiedad privada que Lit no observa automáticamente. Sin esta llamada, el componente no sabría que necesita volver a renderizar. En connected Callback también puedes suscribirte a eventos globales, cargar datos iniciales o iniciar animaciones."
+  "Llamamos a this.rikuést Update() porque _currentTime es una propiedad privada que Lit no observa automáticamente. Sin esta llamada, el componente no sabría que necesita volver a renderizar. En connected Callback también puedes suscribirte a eventos globales, cargar datos iniciales o iniciar animaciones."
 
 speak "04-willupdate.mp3" \
   "will Update se ejecuta justo antes de cada render. Recibe un Map llamado changedProps que contiene las propiedades que cambiaron. Importante: los valores dentro del Map son los valores anteriores, no los nuevos. Para leer el nuevo valor usas this.label directamente. Este método es perfecto para derivar estado. Cualquier cambio que hagas aquí no dispara un render adicional."

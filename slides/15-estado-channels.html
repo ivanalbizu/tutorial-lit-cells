@@ -40,7 +40,7 @@ import { subscribe, publish, unsubscribe } from '@open-cells/core';
           <h2>Los tres métodos de Channels</h2>
           <p class="scene-desc">Cada función y su propósito</p>
           <pre><code class="language-typescript" data-trim data-line-numbers
-            data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"4"},{"time":5,"lines":"7-9"},{"time":8,"lines":"12"}]'>
+            data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"3-4"},{"time":6,"lines":"3-4,6-9"},{"time":10,"lines":"3-4,6-9,11-12"}]'>
 import { subscribe, publish, unsubscribe } from '@open-cells/core';
 
 // PUBLICAR: enviar un nuevo valor al canal
@@ -66,7 +66,8 @@ unsubscribe('ch-cart');
         <section data-audio="audio/15/02-escena.mp3">
           <h2>Patrón: <code>onPageEnter</code> / <code>onPageLeave</code></h2>
           <p class="scene-desc">Gestión correcta del ciclo de vida</p>
-          <pre><code class="language-typescript" data-trim data-line-numbers>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":1,"lines":"7-11"},{"time":3,"lines":"7-11,13-15"}]'>
 @customElement('cart-page')
 export class CartPage extends LitElement {
   pageController = new PageController(this);
@@ -90,7 +91,7 @@ export class CartPage extends LitElement {
           <h2>Patrón: <code>onPageEnter</code> / <code>onPageLeave</code></h2>
           <p class="scene-desc">Por qué es importante</p>
           <pre><code class="language-typescript" data-trim data-line-numbers
-            data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"7-10"},{"time":5,"lines":"12-14"}]'>
+            data-highlight-steps='[{"time":0,"lines":""},{"time":4,"lines":"11-14"},{"time":10,"lines":"4-9"}]'>
 export class CartPage extends LitElement {
   @state() cartItems: CartItem[] = [];
 
@@ -115,14 +116,12 @@ export class CartPage extends LitElement {
         </section>
       </section>
 
-      <!-- ============================== -->
-      <!-- ESCENA 3 — product-page publica-->
-      <!-- ============================== -->
+<!-- ESCENA 3 — product-page public ========= -->
       <section data-audio="audio/15/03-escena.mp3">
         <h2>Flujo del carrito: publicar</h2>
         <p class="scene-desc"><code>product-page</code> publica en el canal</p>
-        <pre><code class="language-typescript" data-trim data-line-numbers
-          data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"1"},{"time":5,"lines":"11-17"},{"time":9,"lines":"19-22"}]'>
+        <pre><code class="language-typescript large" data-trim data-line-numbers
+          data-highlight-steps='[{"time":0,"lines":""},{"time":1,"lines":"20-23"},{"time":6,"lines":"9-14"},{"time":10,"lines":"7"}]'>
 import { subscribe, publish, unsubscribe } from '@open-cells/core';
 
 @customElement('product-page')
@@ -161,10 +160,10 @@ export class ProductPage extends LitElement {
           <pre>
 product-page                    ch-cart                    cart-page
     │                              │                           │
-    │  publish(updated)  ──────►   │   ──► callback(items) ►  │
+    │  publish(updated)  ──────►   │   ──► callback(items) ►   │
     │                              │                           │  @state actualizado
     │                              │                           │  → re-render
-    │  ◄── callback(items) ◄───    │   ◄──  publish(updated)  │
+    │  ◄── callback(items) ◄───    │   ◄──  publish(updated)   │
     │  (al eliminar un item)       │                           │
           </pre>
         </div>
@@ -181,8 +180,8 @@ product-page                    ch-cart                    cart-page
       <section data-audio="audio/15/05-escena.mp3">
         <h2>Flujo del carrito: suscribirse</h2>
         <p class="scene-desc"><code>cart-page</code> recibe y puede eliminar items</p>
-        <pre><code class="language-typescript" data-trim data-line-numbers
-          data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"8-10"},{"time":5,"lines":"12-14"},{"time":8,"lines":"16-19"}]'>
+        <pre><code class="language-typescript large" data-trim data-line-numbers
+          data-highlight-steps='[{"time":0,"lines":""},{"time":1,"lines":"6-10"},{"time":6,"lines":"12-14"},{"time":10,"lines":"16-19"},{"time":18,"lines":"21-23"}]'>
 @customElement('cart-page')
 export class CartPage extends LitElement {
   pageController = new PageController(this);
@@ -216,11 +215,11 @@ export class CartPage extends LitElement {
         <p class="scene-desc">Por qué usar Channels en lugar de otras soluciones</p>
         <ul>
           <li class="fragment" data-fragment-time="3"><strong>Desacoplado</strong> — las páginas no se importan entre sí, no se conocen</li>
-          <li class="fragment" data-fragment-time="6"><strong>Global</strong> — cualquier componente en cualquier nivel puede publicar o suscribirse</li>
-          <li class="fragment" data-fragment-time="11"><strong>Simple</strong> — sin reducers, sin acciones, sin selectores. Solo <code>publish</code> y <code>subscribe</code></li>
-          <li class="fragment" data-fragment-time="16"><strong>Lifecycle-aware</strong> — el patrón <code>onPageEnter</code> / <code>onPageLeave</code> evita memory leaks automáticamente</li>
+          <li class="fragment" data-fragment-time="9"><strong>Global</strong> — cualquier componente en cualquier nivel puede publicar o suscribirse</li>
+          <li class="fragment" data-fragment-time="14"><strong>Simple</strong> — sin reducers, sin acciones, sin selectores. Solo <code>publish</code> y <code>subscribe</code></li>
+          <li class="fragment" data-fragment-time="21"><strong>Lifecycle-aware</strong> — el patrón <code>onPageEnter</code> / <code>onPageLeave</code> evita memory leaks automáticamente</li>
         </ul>
-        <div class="callout fragment" data-fragment-time="18" style="margin-top: 1rem;">
+        <div class="callout fragment" data-fragment-time="0" style="margin-top: 1rem;">
           <p>El canal es una cadena de texto — el contrato entre publicador y suscriptor<br/>
           Si el nombre no coincide, los mensajes no llegan</p>
         </div>

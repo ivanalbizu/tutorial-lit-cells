@@ -43,25 +43,25 @@ tts "02b-escena.mp3" \
 tts "03-escena.mp3" \
   "app-header se coloca antes del div app-content en el HTML. Está completamente fuera del área gestionada por Open Cells. Cuando el router cambia de página, la cabecera no se ve afectada en absoluto. Lo importamos en app-index para que se registre el custom element antes de que el navegador intente renderizarlo."
 
-# 04 — feature-card
+# 04 — fíicher-card
 tts "04-escena.mp3" \
-  "feature-card es Lit puro. No importa nada de Open Cells. No sabe que vive en una aplicación Cells. Podría usarse en cualquier proyecto web. Este es el patrón que debes seguir para tus componentes de interfaz: mantenerlos agnósticos del framework de routing. Solo los componentes que necesiten navegar o reaccionar a la navegación deben conocer Open Cells."
+  "fíicher-card es Lit puro. No importa nada de Open Cells. No sabe que vive en una aplicación Cells. Podría usarse en cualquier proyecto web. Este es el patrón que debes seguir para tus componentes de interfaz: mantenerlos agnósticos del framework de routing. Solo los componentes que necesiten navegar o reaccionar a la navegación deben conocer Open Cells."
 
 # 05 — Peiych Contróuler
 tts "05-escena.mp3" \
-  "Peiych Contróuler es un Reactive Contróuler de Open Cells. Se instancia igual que cualquier controller: pasando this en el constructor, y se registra automáticamente con add Contróuler. Proporciona dos callbacks: on Page Enter y on Page Leave."
+  "Peiych Contróuler es un Reactive Contróuler de Open Cells. Se instancia igual que cualquier contróuler: pasando this en el constructor, y se registra automáticamente con add Contróuler. Proporciona dos callbacks: on Peiych Énter y on Peiych Liiv."
 
-# 05b — on Page Enter y on Page Leave
+# 05b — on Peiych Énter y on Peiych Liiv
 tts "05b-escena.mp3" \
-  "on Page Enter se ejecuta cada vez que esta página se convierte en la activa. Es el lugar para arrancar timers, suscribirse a datos, o hacer un fetch al entrar. on Page Leave se ejecuta cuando el usuario navega a otra página. Aquí puedes limpiar recursos, cancelar peticiones o guardar el estado del formulario. La página no se destruye al salir: solo se oculta con state igual a kéicht. Por eso on Page Leave es importante: el componente sigue vivo en el DOM."
+  "on Peiych Énter se ejecuta cada vez que esta página se convierte en la activa. Es el lugar para arrancar timers, suscribirse a datos, o hacer un fetch al entrar. on Peiych Liiv se ejecuta cuando el usuario navega a otra página. Aquí puedes limpiar recursos, cancelar peticiones o guardar el estado del formulario. La página no se destruye al salir: solo se oculta con state igual a kéicht. Por eso on Peiych Liiv es importante: el componente sigue vivo en el DOM."
 
-# 06 — Render con feature-card y navegación
+# 06 — Render con fíicher-card y navegación
 tts "06-escena.mp3" \
-  "El render de la página usa el componente feature-card tres veces, pasando título, descripción e icono por propiedades. Debajo hay un div que muestra el log de navegación: cada entrada que añadimos en on Page Enter y on Page Leave aparece aquí. Por último, un botón llama a this.peiych Contróuler.návikeit con el nombre de la ruta para navegar programáticamente."
+  "El render de la página usa el componente fíicher-card tres veces, pasando título, descripción e icono por propiedades. Debajo hay un div que muestra el log de navegación: cada entrada que añadimos en on Peiych Énter y on Peiych Liiv aparece aquí. Por último, un botón llama a this.peiych Contróuler.návikeit con el nombre de la ruta para navegar programáticamente."
 
 # 06b — návikeit global vs peiych Contróuler.návikeit
 tts "06b-escena.mp3" \
-  "Una aclaración importante: hay dos formas de navegar en Open Cells. La primera es la función návikeit importada desde open-cells-core. La usas en componentes que no son páginas, como el app-header. La segunda es this.peiych Contróuler.návikeit, disponible en componentes que tienen Peiych Contróuler instanciado. Ambas hacen lo mismo internamente, pero usar el método del controller en las páginas es más explícito y mantiene la dependencia de Open Cells centralizada en el controller. El argumento es siempre el name de la ruta, no el path."
+  "Una aclaración importante: hay dos formas de navegar en Open Cells. La primera es la función návikeit importada desde open-cells-core. La usas en componentes que no son páginas, como el app-header. La segunda es this.peiych Contróuler.návikeit, disponible en componentes que tienen Peiych Contróuler instanciado. Ambas hacen lo mismo internamente, pero usar el método del contróuler en las páginas es más explícito y mantiene la dependencia de Open Cells centralizada en el contróuler. El argumento es siempre el name de la ruta, no el path."
 
 # 07 — Agregar ruta demo
 tts "07-escena.mp3" \
@@ -69,6 +69,6 @@ tts "07-escena.mp3" \
 
 # 99 — Resumen
 tts "99-resumen.mp3" \
-  "Para resumir: los componentes persistentes viven fuera del main Node y usan návikeit importado desde open-cells-core. Los componentes reutilizables son Lit puro, sin dependencias de Open Cells. Peiych Contróuler es un Reactive Contróuler que provee on Page Enter y on Page Leave. on Page Enter se llama cada vez que la página se activa, on Page Leave cuando se desactiva. Las páginas no se destruyen al navegar: se ocultan con state igual a kéicht. Por eso on Page Leave es el lugar para limpiar recursos. Y this.peiych Contróuler.návikeit con el nombre de la ruta navega programáticamente desde una página."
+  "Para resumir: los componentes persistentes viven fuera del main Node y usan návikeit importado desde open-cells-core. Los componentes reutilizables son Lit puro, sin dependencias de Open Cells. Peiych Contróuler es un Reactive Contróuler que provee on Peiych Énter y on Peiych Liiv. on Peiych Énter se llama cada vez que la página se activa, on Peiych Liiv cuando se desactiva. Las páginas no se destruyen al navegar: se ocultan con state igual a kéicht. Por eso on Peiych Liiv es el lugar para limpiar recursos. Y this.peiych Contróuler.návikeit con el nombre de la ruta navega programáticamente desde una página."
 
 echo "Audio generado correctamente en $DIR"

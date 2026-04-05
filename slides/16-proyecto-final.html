@@ -47,7 +47,7 @@ Resultado: cualquier componente con el controller
         <section data-audio="audio/16/01b-escena.mp3">
           <h2>CartController — estructura</h2>
           <p class="scene-desc">Implementa <code>ReactiveController</code> de Lit</p>
-          <pre><code class="language-typescript" data-trim data-line-numbers>
+          <pre><code class="language-typescript large" data-trim data-line-numbers>
 import { ReactiveController, ReactiveControllerHost } from 'lit';
 import { subscribe, unsubscribe, publish } from '@open-cells/core';
 
@@ -76,7 +76,7 @@ export class CartController implements ReactiveController {
           <h2>CartController — ciclo de vida</h2>
           <p class="scene-desc"><code>hostConnected</code> suscribe, <code>hostDisconnected</code> desuscribe</p>
           <pre><code class="language-typescript" data-trim data-line-numbers
-            data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"1-6"},{"time":7,"lines":"8-10"}]'>
+            data-highlight-steps='[{"time":0,"lines":""},{"time":1,"lines":"1-6"},{"time":10,"lines":"8-10"}]'>
 hostConnected() {
   subscribe(CART_CHANNEL, (items: CartItem[]) => {
     this.items = items ?? [];
@@ -97,8 +97,8 @@ hostDisconnected() {
         <section data-audio="audio/16/01d-escena.mp3">
           <h2>CartController — acciones y getters</h2>
           <p class="scene-desc">Las acciones siempre publican en el canal</p>
-          <pre><code class="language-typescript" data-trim data-line-numbers
-            data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"1-10"},{"time":5,"lines":"12-14"},{"time":8,"lines":"16-18"},{"time":11,"lines":"20-22"},{"time":13,"lines":"24-26"},{"time":14,"lines":"28-30"}]'>
+          <pre><code class="language-typescript x-large" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":1,"lines":"1,11,12"},{"time":2,"lines":"1,11,12,14-16"},{"time":3,"lines":"1,11,12,14-16,18-20"},{"time":16,"lines":"22-24"},{"time":16.5,"lines":"22-24,25-27"},{"time":17,"lines":"22-24,25-27,28-30"}]'>
 add(product: Omit&lt;CartItem, 'quantity'&gt;) {
   const existing = this.items.find(i => i.id === product.id);
   let updated: CartItem[];
@@ -123,16 +123,14 @@ clear() {
 get total() {
   return this.items.reduce((sum, i) => sum + i.price * i.quantity, 0);
 }
-
 get count() {
   return this.items.reduce((sum, i) => sum + i.quantity, 0);
 }
-
 get isEmpty() {
   return this.items.length === 0;
 }
           </code></pre>
-          <p class="note fragment" data-fragment-time="13">
+          <p class="note fragment" data-fragment-time="10">
             <code>items</code> nunca se modifica directamente —<br/>
             la actualización llega siempre a través del canal
           </p>
@@ -143,8 +141,9 @@ get isEmpty() {
       <section data-audio="audio/16/02-escena.mp3">
         <h2>Badge dinámico en <code>app-header</code></h2>
         <p class="scene-desc">Instanciar el controller = sincronización automática</p>
-        <pre><code class="language-typescript" data-trim data-line-numbers
-          data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"5"},{"time":5,"lines":"7-8"},{"time":10,"lines":"12-16"}]'>
+        <pre><code class="language-typescript x-large" data-trim data-line-numbers
+          data-highlight-steps='[{"time":0,"lines":"dim"},{"time":1.5,"lines":"1-2"},{"time":3,"lines":"6-7"},{"time":7,"lines":"12,14,20"},{"time":14,"lines":"16-19"}]'>
+import { PageController } from '@open-cells/page-controller';
 import { CartController } from '../../controllers/cart-controller.js';
 
 @customElement('app-header')
@@ -183,7 +182,8 @@ export class AppHeader extends LitElement {
         <section data-audio="audio/16/03-escena.mp3">
           <h2><code>page-layout</code> con slots</h2>
           <p class="scene-desc">Componente de presentación puro</p>
-          <pre><code class="language-typescript" data-trim data-line-numbers>
+          <pre><code class="language-typescript large" data-trim data-line-numbers
+             data-highlight-steps='[{"time":0,"lines":""},{"time":6,"lines":"9-11"},{"time":9,"lines":"6-8"},{"time":12,"lines":"12-14"}]'>
 @customElement('page-layout')
 export class PageLayout extends LitElement {
   render() {
@@ -209,7 +209,7 @@ export class PageLayout extends LitElement {
           <h2><code>page-layout</code> — uso en una página</h2>
           <p class="scene-desc">Las páginas pasan contenido a los slots</p>
           <pre><code class="language-html" data-trim data-line-numbers
-            data-highlight-steps='[{"time":0,"lines":""},{"time":5,"lines":"2"},{"time":8,"lines":"4"},{"time":10,"lines":"6"}]'>
+            data-highlight-steps='[{"time":0,"lines":""},{"time":4,"lines":"4"},{"time":8,"lines":"2"},{"time":12,"lines":"6"}]'>
 &lt;page-layout&gt;
   &lt;span slot="subtitle"&gt;Catálogo de productos&lt;/span&gt;
 
@@ -230,8 +230,8 @@ export class PageLayout extends LitElement {
       <section data-audio="audio/16/04-escena.mp3">
         <h2>Directivas en <code>home-page</code></h2>
         <p class="scene-desc"><code>when()</code>, <code>classMap()</code>, <code>repeat()</code></p>
-        <pre><code class="language-typescript" data-trim data-line-numbers
-          data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"1-3"},{"time":5,"lines":"7-9"},{"time":8,"lines":"11-17"},{"time":12,"lines":"18-20"}]'>
+        <pre><code class="language-typescript x-large" data-trim data-line-numbers
+          data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"2,10-12,23-25"},{"time":4,"lines":"1,14,21"},{"time":7,"lines":"3,17-19"}]'>
 import { repeat } from 'lit/directives/repeat.js';
 import { when } from 'lit/directives/when.js';
 import { classMap } from 'lit/directives/class-map.js';
@@ -267,8 +267,8 @@ render() {
       <section data-audio="audio/16/05-escena.mp3">
         <h2><code>@query</code> para scroll automático</h2>
         <p class="scene-desc">Referencia tipada a un elemento del Shadow DOM</p>
-        <pre><code class="language-typescript" data-trim data-line-numbers
-          data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"4"},{"time":8,"lines":"6-10"}]'>
+        <pre><code class="language-typescript x-large" data-trim data-line-numbers
+          data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"4"},{"time":8,"lines":"6-11"}]'>
 @customElement('cart-page')
 export class CartPage extends LitElement {
   cart = new CartController(this);

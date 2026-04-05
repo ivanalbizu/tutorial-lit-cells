@@ -29,11 +29,11 @@
           <p class="scene-desc">Funcionalidades del mini e-commerce</p>
           <ul>
             <li class="fragment" data-fragment-time="3">Catálogo con <strong>búsqueda con debounce</strong></li>
-            <li class="fragment" data-fragment-time="4">Detalle de producto con <strong>parámetros dinámicos</strong></li>
-            <li class="fragment" data-fragment-time="6">Carrito con <strong>cantidades</strong> y total calculado</li>
-            <li class="fragment" data-fragment-time="7">Lista de <strong>favoritos</strong> independiente</li>
-            <li class="fragment" data-fragment-time="9">Notificaciones <strong>toast</strong> con auto-dismiss</li>
-            <li class="fragment" data-fragment-time="10">Cleanup en <strong><code>onPageLeave</code></strong></li>
+            <li class="fragment" data-fragment-time="5">Detalle de producto con <strong>parámetros dinámicos</strong></li>
+            <li class="fragment" data-fragment-time="7">Carrito con <strong>cantidades</strong> y total calculado</li>
+            <li class="fragment" data-fragment-time="10">Lista de <strong>favoritos</strong> independiente</li>
+            <li class="fragment" data-fragment-time="12">Notificaciones <strong>toast</strong> con auto-dismiss</li>
+            <li class="fragment" data-fragment-time="14">Cleanup en <strong><code>onPageLeave</code></strong></li>
           </ul>
         </section>
 
@@ -119,20 +119,17 @@ ToastController
       <section data-audio="audio/17/04-escena.mp3">
         <h2><code>SearchController</code> — debounce sin canal</h2>
         <p class="scene-desc">Reactive Controller puro — solo <code>setTimeout</code></p>
-        <pre><code class="language-typescript" data-trim data-line-numbers
-          data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"5"},{"time":5,"lines":"8-11"},{"time":9,"lines":"13-18"},{"time":14,"lines":"20-22"}]'>
+        <pre><code class="language-typescript x-large" data-trim data-line-numbers
+          data-highlight-steps='[{"time":0,"lines":"dim"},{"time":7,"lines":"17-24"},{"time":12,"lines":"20-21"},{"time":25,"lines":"10-16"}]'>
 export class SearchController implements ReactiveController {
   private host: ReactiveControllerHost;
   private timer: ReturnType&lt;typeof setTimeout&gt; | null = null;
   query: string = '';
-
   constructor(host: ReactiveControllerHost) {
     this.host = host;
     host.addController(this);
   }
-
   hostConnected() {}
-
   hostDisconnected() {
     // Limpiar el timer pendiente al desconectar
     if (this.timer) {
@@ -140,7 +137,6 @@ export class SearchController implements ReactiveController {
       this.timer = null;
     }
   }
-
   search(value: string) {
     if (this.timer) clearTimeout(this.timer);
     this.timer = setTimeout(() => {
@@ -149,7 +145,6 @@ export class SearchController implements ReactiveController {
       this.timer = null;
     }, 300);
   }
-
   get hasQuery() {
     return this.query.trim().length &gt; 0;
   }
@@ -165,8 +160,7 @@ export class SearchController implements ReactiveController {
       <section data-audio="audio/17/05-escena.mp3">
         <h2><code>ToastController</code> — auto-remove tras 3 segundos</h2>
         <p class="scene-desc">Método estático para publicar desde cualquier parte</p>
-        <pre><code class="language-typescript" data-trim data-line-numbers
-          data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"13-18"},{"time":9,"lines":"20-23"}]'>
+        <pre><code class="language-typescript large" data-trim data-line-numbers>
 export class ToastController implements ReactiveController {
   private host: ReactiveControllerHost;
   messages: ToastMessage[] = [];
@@ -190,10 +184,14 @@ export class ToastController implements ReactiveController {
   }
 }
         </code></pre>
-        <div class="callout fragment" data-fragment-time="9">
-          <p><code>ToastController.show('mensaje', 'success')</code><br/>
-          Se llama sin instanciar el controller —<br/>
-          el <code>toast-container</code> recibe el mensaje y programa el auto-dismiss</p>
+        <div class="callout fragment" data-fragment-time="2">
+          <p><strong>hostConnected</strong> — se suscribe al canal. Cada mensaje recibido actualiza el array y dispara un re-render.</p>
+        </div>
+        <div class="callout fragment" data-fragment-time="8">
+          <p><strong>static show()</strong> — publica en el canal sin instancia. Cualquier componente puede lanzar una notificación con una línea.</p>
+        </div>
+        <div class="callout fragment" data-fragment-time="14">
+          <p><strong>dismiss()</strong> — publica el array filtrado. El componente que tiene el controller instanciado recibe y renderiza el cambio.</p>
         </div>
       </section>
 
@@ -201,8 +199,7 @@ export class ToastController implements ReactiveController {
       <section data-audio="audio/17/06-escena.mp3">
         <h2><code>WishlistController</code> — segundo canal independiente</h2>
         <p class="scene-desc">Mismo patrón, canal <code>wishlist-items</code></p>
-        <pre><code class="language-typescript" data-trim data-line-numbers
-          data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"5-8"},{"time":6,"lines":"10-16"},{"time":13,"lines":"18-23"}]'>
+        <pre><code class="language-typescript x-large" data-trim data-line-numbers>
 export class WishlistController implements ReactiveController {
   private host: ReactiveControllerHost;
   items: WishlistItem[] = [];
@@ -231,17 +228,22 @@ export class WishlistController implements ReactiveController {
   get count() { return this.items.length; }
 }
         </code></pre>
-        <p class="note fragment" data-fragment-time="13">
-          <code>toggle</code> — añade si no existe, elimina si ya está<br/>
-          <code>has(id)</code> — para mostrar el estado del botón en la tarjeta
-        </p>
+        <div class="callout fragment" data-fragment-time="2">
+          <p><strong>hostConnected / hostDisconnected</strong> — mismo patrón que CartController, canal <code>wishlist-items</code>.</p>
+        </div>
+        <div class="callout fragment" data-fragment-time="7">
+          <p><strong>toggle()</strong> — un único método: añade si el producto no está en la lista, lo elimina si ya está.</p>
+        </div>
+        <div class="callout fragment" data-fragment-time="16">
+          <p><strong>has(id)</strong> — devuelve <code>true/false</code> para que la tarjeta muestre el estado del botón de favorito.</p>
+        </div>
       </section>
 
 <!-- ESCENA 7 — Directiva live()     ======== -->
       <section data-audio="audio/17/07-escena.mp3">
         <h2>Directiva <code>live()</code> en el input de búsqueda</h2>
         <p class="scene-desc">Evitar que el campo parpadee mientras el usuario escribe</p>
-        <pre><code class="language-typescript" data-trim data-line-numbers
+        <pre><code class="language-typescript large" data-trim data-line-numbers
           data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"1"},{"time":5,"lines":"7-9"}]'>
 import { live } from 'lit/directives/live.js';
 
@@ -277,8 +279,8 @@ render() {
       <section data-audio="audio/17/08-escena.mp3">
         <h2><code>product-card</code> — tres controllers, un componente</h2>
         <p class="scene-desc">Carrito, favoritos y toasts integrados</p>
-        <pre><code class="language-typescript" data-trim data-line-numbers
-          data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"5-7"},{"time":10,"lines":"9-13"},{"time":14,"lines":"15-21"}]'>
+        <pre><code class="language-typescript large" data-trim data-line-numbers
+          data-highlight-steps='[{"time":0,"lines":""},{"time":4,"lines":"5-7"},{"time":13,"lines":"9-12"},{"time":18,"lines":"14-23"}]'>
 @customElement('product-card')
 export class ProductCard extends LitElement {
   @property({ type: Object }) product!: { id: string; name: string; price: number };
@@ -314,8 +316,8 @@ export class ProductCard extends LitElement {
       <section data-audio="audio/17/09-escena.mp3">
         <h2><code>onPageLeave</code> para lógica de salida</h2>
         <p class="scene-desc">Más que desuscribirse: lógica de negocio al salir</p>
-        <pre><code class="language-typescript" data-trim data-line-numbers
-          data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"4-8"}]'>
+        <pre><code class="language-typescript large" data-trim data-line-numbers
+          data-highlight-steps='[{"time":0,"lines":""},{"time":15,"lines":"5-9"}]'>
 @customElement('cart-page')
 export class CartPage extends LitElement {
   cart = new CartController(this);

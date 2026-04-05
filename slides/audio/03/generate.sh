@@ -57,7 +57,7 @@ generate "09-escena.mp3" \
 
 # 10 — Reactividad en DevTools
 generate "10-escena.mp3" \
-  "Para ver la reactividad en acción, abrimos la consola del navegador. Cambiamos step a 10 en el contador: ahora cada pulsación suma o resta 10. Cambiamos active a true en la segunda tarjeta: el borde cambia inmediatamente a morado y el badge dice Activo. Todo esto sin recargar la página, porque Lit detecta el cambio en la propiedad y re-renderiza."
+  "Para ver la reactividad en acción, abrimos la consola del navegador. Cambiamos step a 10 en el contador: ahora cada pulsación suma o resta 10. Cambiamos active a true en la segunda tarjeta: el borde cambia inmediatamente a morado y el badch dice Activo. Todo esto sin recargar la página, porque Lit detecta el cambio en la propiedad y re-renderiza."
 
 # 99 — Resumen
 generate "99-resumen.mp3" \

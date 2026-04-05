@@ -154,7 +154,7 @@ Usuario navega  →  interceptor()  →  ¿permitir?
       <section>
         <section data-audio="audio/14/05-escena.mp3">
           <h2>Definir el interceptor</h2>
-          <p class="scene-desc">Rutas públicas y guardia de autenticación</p>
+          <p class="scene-desc">Rutas públicas y guard de autenticación</p>
           <pre><code class="language-typescript large" data-trim data-line-numbers
              data-highlight-steps='[{"time":0,"lines":""},{"time":1,"lines":"1"},{"time":7,"lines":"6-18"}]'>
 const PUBLIC_ROUTES = ['home', 'login', 'product'];
@@ -181,7 +181,7 @@ startApp({
 
         <section data-audio="audio/14/05b-escena.mp3">
           <h2>Definir el interceptor</h2>
-          <p class="scene-desc">Lógica del guardia</p>
+          <p class="scene-desc">Lógica del guard</p>
           <pre><code class="language-typescript" data-trim data-line-numbers
             data-highlight-steps='[{"time":0,"lines":""},{"time":1,"lines":"6-8"},{"time":7,"lines":"10-12"},{"time":12,"lines":"14"}]'>
 const PUBLIC_ROUTES = ['home', 'login', 'product'];
@@ -292,7 +292,8 @@ startApp({
         <section data-audio="audio/14/09-escena.mp3">
           <h2><code>updateInterceptorContext</code></h2>
           <p class="scene-desc">Actualizar el contexto desde cualquier página</p>
-          <pre><code class="language-typescript" data-trim data-line-numbers>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"2"},{"time":6,"lines":"7-10"},{"time":13.5,"lines":"3,14"}]'>
 import {
   updateInterceptorContext,
   getInterceptorContext
@@ -315,7 +316,8 @@ private checkAuth() {
         <section data-audio="audio/14/09b-escena.mp3">
           <h2>Login y página protegida</h2>
           <p class="scene-desc">Implementación mínima</p>
-          <pre><code class="language-typescript" data-trim data-line-numbers>
+          <pre><code class="language-typescript" data-trim data-line-numbers
+            data-highlight-steps='[{"time":0,"lines":""},{"time":2,"lines":"13"},{"time":4,"lines":"5-8"}]'>
 @customElement('login-page')
 export class LoginPage extends LitElement {
   pageController = new PageController(this);

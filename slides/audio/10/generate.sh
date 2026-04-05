@@ -29,11 +29,11 @@ tts "00-intro.mp3" \
 
 # 01 — ¿Qué es un Reactive Contróuler?
 tts "01-escena.mp3" \
-  "Un Reactive Contróuler es una clase que puede engancharse al ciclo de vida de un componente Lit. El componente que lo usa se llama host. El controller puede pedirle al host que se rerenderice cuando su estado interno cambia."
+  "Un Reactive Contróuler es una clase que puede engancharse al ciclo de vida de un componente Lit. El componente que lo usa se llama host. El contróuler puede pedirle al host que se rerenderice cuando su estado interno cambia."
 
 # 01b — Interfaz Reactive Contróuler
 tts "01b-escena.mp3" \
-  "La interfaz tiene cuatro métodos opcionales: host Connected, que se llama cuando el host se conecta al DOM; host Disconnected, cuando se desconecta; host Update, antes de cada actualización; y host Updated, después de cada actualización. Lo fundamental es que en el constructor llamas host.add Contróuler de this. Eso registra el controller y activa los hooks del ciclo de vida."
+  "La interfaz tiene cuatro métodos opcionales: host Connected, que se llama cuando el host se conecta al DOM; host Disconnected, cuando se desconecta; host Update, antes de cada actualización; y host Updated, después de cada actualización. Lo fundamental es que en el constructor llamas host.add Contróuler de this. Eso registra el contróuler y activa los hooks del ciclo de vida."
 
 # 02 — Clock Contróuler
 tts "02-escena.mp3" \
@@ -41,7 +41,7 @@ tts "02-escena.mp3" \
 
 # 02b — Detalles Clock Contróuler
 tts "02b-escena.mp3" \
-  "Fíjate en dos cosas clave. Primero, this.host.request Update: cuando el controller cambia su estado interno, el host no lo sabe automáticamente. Tenemos que notificárselo manualmente para que se rerenderice. Segundo, la limpieza en host Disconnected. Si no cancelamos el set interval, el timer seguiría corriendo aunque el componente ya no existiera, produciendo una fuga de memoria."
+  "Fíjate en dos cosas clave. Primero, this.host.rikuést Update: cuando el contróuler cambia su estado interno, el host no lo sabe automáticamente. Tenemos que notificárselo manualmente para que se rerenderice. Segundo, la limpieza en host Disconnected. Si no cancelamos el set interval, el timer seguiría corriendo aunque el componente ya no existiera, produciendo una fuga de memoria."
 
 # 03 — Mouse Contróuler
 tts "03-escena.mp3" \
@@ -49,19 +49,19 @@ tts "03-escena.mp3" \
 
 # 04 — Fetch Contróuler
 tts "04-escena.mp3" \
-  "Este controller es genérico: la T es el tipo de los datos que esperamos recibir. Tiene tres estados: loading, error y data. Usamos un Abort Contróuler nativo del navegador para cancelar peticiones en vuelo. Si el componente se desmonta antes de que la petición termine, host Disconnected llama abort y evitamos que lleguen datos a un componente que ya no existe."
+  "Este contróuler es genérico: la T es el tipo de los datos que esperamos recibir. Tiene tres estados: loading, error y data. Usamos un Abort Contróuler nativo del navegador para cancelar peticiones en vuelo. Si el componente se desmonta antes de que la petición termine, host Disconnected llama abort y evitamos que lleguen datos a un componente que ya no existe."
 
 # 04b — Método fetch
 tts "04b-escena.mp3" \
-  "El método fetch cancela cualquier petición anterior antes de iniciar una nueva. Actualiza loading y llama request Update para que el host muestre el indicador de carga. Al terminar, en el bloque fáinali, loading vuelve a false y se notifica al host de nuevo. El AbortError se maneja por separado: cuando se cancela intencionalmente no lo tratamos como un error real."
+  "El método fetch cancela cualquier petición anterior antes de iniciar una nueva. Actualiza loading y llama rikuést Update para que el host muestre el indicador de carga. Al terminar, en el bloque fáinali, loading vuelve a false y se notifica al host de nuevo. El AbortError se maneja por separado: cuando se cancela intencionalmente no lo tratamos como un error real."
 
 # 05 — Uso en componente
 tts "05-escena.mp3" \
-  "Aquí se ve la elegancia del patrón. Los tres controllers son simplemente class fields. Lit los registra automáticamente porque cada uno llamó add Contróuler en su constructor."
+  "Aquí se ve la elegancia del patrón. Los tres contróulers son simplemente class fields. Lit los registra automáticamente porque cada uno llamó add Contróuler en su constructor."
 
 # 05c — Class fields vs constructor
 tts "05c-escena.mp3" \
-  "¿Por qué class fields y no el constructor? Podríamos declarar los controllers dentro del constructor, pero sería código innecesario: declarar la propiedad, llamar a super, e instanciar cada controller. Como class field, el propio constructor del controller llama add Contróuler de this, así que el registro ocurre solo. Es la forma idiomática en Lit: menos código, más legible."
+  "¿Por qué class fields y no el constructor? Podríamos declarar los contróulers dentro del constructor, pero sería código innecesario: declarar la propiedad, llamar a super, e instanciar cada contróuler. Como class field, el propio constructor del contróuler llama add Contróuler de this, así que el registro ocurre solo. Es la forma idiomática en Lit: menos código, más legible."
 
 # 05b — Render
 tts "05b-escena.mp3" \
@@ -69,6 +69,6 @@ tts "05b-escena.mp3" \
 
 # 99 — Resumen
 tts "99-resumen.mp3" \
-  "Para resumir: un Reactive Contróuler implementa host Connected, host Disconnected, host Update y host Updated. El constructor siempre llama host.add Contróuler de this para registrarse. Se llama host.request Update para notificar cambios de estado al componente. Se instancian como class fields en el componente. Un mismo componente puede tener múltiples controllers. Y la limpieza de recursos en host Disconnected es obligatoria para evitar fugas de memoria."
+  "Para resumir: un Reactive Contróuler implementa host Connected, host Disconnected, host Update y host Updated. El constructor siempre llama host.add Contróuler de this para registrarse. Se llama host.rikuést Update para notificar cambios de estado al componente. Se instancian como class fields en el componente. Un mismo componente puede tener múltiples contróulers. Y la limpieza de recursos en host Disconnected es obligatoria para evitar fugas de memoria."
 
 echo "Audio generado correctamente en $DIR"
